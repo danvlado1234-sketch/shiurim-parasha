@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>שיעורי פרשת שבוע · מאת הרה"ג רבי יצחק ולדומירסקי שליט"א</title>
+<meta name="description" content="שיעורי פרשת השבוע מפי הרה&quot;ג רבי יצחק ולדומירסקי שליט&quot;א — האזנה חינם לפי חומש ופרשה, מכל השנים.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:#f5efdf; --ink:#26211a; --accent:#1f4a33; /* ירוק עמוק - הצבע המבחין של אתר הפרשות */
+    --accent-soft:#2c5c42; --brass:#a1782f; --line:#d8cbaa; --muted:#7a7061;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Heebo',sans-serif; background:var(--paper); color:var(--ink);
+    min-height:100vh;
+    background-image:linear-gradient(0deg, rgba(31,74,51,.05) 1px, transparent 1px);
+    background-size:100% 46px;
+  }
+  .wrap { max-width:760px; margin:0 auto; padding:28px 18px 80px; }
+
+  header.hero { text-align:center; padding:26px 0 20px; border-bottom:2px solid var(--accent); margin-bottom:26px; }
+  header.hero h1 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(30px,7vw,44px); color:var(--accent); }
+  header.hero .byline { font-family:'Frank Ruhl Libre',serif; font-size:clamp(16px,4vw,20px); margin-top:6px; }
+  header.hero .meta { margin-top:10px; font-size:14px; color:var(--muted); }
+
+  .shelf { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:14px; }
+  .volume {
+    font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px;
+    padding:22px 10px 16px; text-align:center; cursor:pointer;
+    background:linear-gradient(180deg,#fbf7ea, #f1e9d2);
+    border:1px solid var(--line); border-top:6px solid var(--accent);
+    border-radius:4px; color:var(--ink);
+    box-shadow:0 2px 0 rgba(38,33,26,.12);
+  }
+  .volume .count { display:block; font-family:'Heebo',sans-serif; font-weight:400; font-size:12.5px; color:var(--muted); margin-top:6px; }
+  .volume:hover { border-top-color:var(--brass); }
+  .volume.empty { opacity:.45; cursor:default; border-top-color:var(--line); }
+  .volume:focus-visible { outline:3px solid var(--brass); outline-offset:2px; }
+
+  .breadcrumb { margin-bottom:18px; }
+  .breadcrumb button {
+    font-family:'Heebo',sans-serif; font-size:14.5px; cursor:pointer;
+    background:none; border:1px solid var(--line); border-radius:20px;
+    padding:8px 16px; color:var(--accent);
+  }
+  .breadcrumb button:hover { border-color:var(--accent); }
+
+  h2.page-title { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(26px,6vw,34px); color:var(--accent); margin-bottom:4px; }
+  .page-sub { color:var(--muted); font-size:14.5px; margin-bottom:20px; }
+
+  .parasha-list { display:flex; flex-direction:column; gap:10px; }
+  .parasha-row {
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px;
+    padding:15px 18px; cursor:pointer; text-align:right;
+    background:#fbf7ea; border:1px solid var(--line); border-right:6px solid var(--accent);
+    border-radius:4px; color:var(--ink); width:100%;
+  }
+  .parasha-row .count { font-family:'Heebo',sans-serif; font-weight:400; font-size:13px; color:var(--muted); flex-shrink:0; }
+  .parasha-row:hover { border-right-color:var(--brass); }
+  .parasha-row.empty { opacity:.45; cursor:default; border-right-color:var(--line); }
+  .parasha-row:focus-visible { outline:3px solid var(--brass); outline-offset:2px; }
+
+  .shiur-row {
+    background:#fbf7ea; border:1px solid var(--line); border-radius:6px;
+    padding:14px 16px; margin-bottom:14px;
+  }
+  .shiur-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .shiur-title { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px; color:var(--accent); }
+  audio { width:100%; }
+
+  .search-row { position:relative; margin-bottom:24px; }
+  .search-input {
+    width:100%; box-sizing:border-box; font-family:'Heebo',sans-serif; font-size:16px;
+    padding:13px 18px; border:1px solid var(--line); border-radius:24px;
+    background:#fbf7ea; color:var(--ink);
+  }
+  .search-input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .suggest {
+    position:absolute; top:calc(100% + 6px); right:0; left:0; z-index:6;
+    background:#fbf7ea; border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 10px 26px rgba(38,33,26,.18); overflow:hidden;
+  }
+  .suggest button {
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    width:100%; padding:12px 18px; cursor:pointer; text-align:right;
+    font-family:'Heebo',sans-serif; font-size:16px; color:var(--ink);
+    background:none; border:0; border-bottom:1px solid var(--line);
+  }
+  .suggest button:last-child { border-bottom:0; }
+  .suggest button:hover, .suggest button.active { background:rgba(31,74,51,.08); }
+  .suggest .yr { color:var(--muted); font-size:13.5px; flex-shrink:0; }
+  .suggest .none { padding:12px 18px; color:var(--muted); font-size:14.5px; }
+  .shiur-row.hl { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
+
+  .no-content, .note {
+    background:#fbf7ea; border:1px dashed var(--line); border-radius:6px;
+    padding:22px; text-align:center; color:var(--muted); font-size:15px; line-height:1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>שיעורי פרשת שבוע</h1>
+    <p class="byline">מאת הרה"ג רבי יצחק ולדומירסקי שליט"א</p>
+    <p class="meta" id="headerMeta">טוען…</p>
+  </header>
+  <div class="search-row">
+    <input type="text" class="search-input" id="searchInput" placeholder="חיפוש פרשה — אפשר גם עם שנה: נח תשפה" autocomplete="off">
+    <div class="suggest" id="suggest" hidden></div>
+  </div>
+  <div id="app"></div>
+</div>
+
+<script>
+(function(){
+  // ====== הגדרות ======
+  // כתובת הענן הציבורית של דלי הפרשות. עד שהדלי נוצר - האתר יציג הודעת הקמה.
+  const R2_BASE = "PASTE_R2_PUBLIC_URL_HERE";
+
+  // ====== האמת הקבועה: פרשות, סדר, ושיוך לחומש ======
+  const CHUMASHIM = [
+    { name:'בראשית', parashot:['בראשית','נח','לך לך','וירא','חיי שרה','תולדות','ויצא','וישלח','וישב','מקץ','ויגש','ויחי'] },
+    { name:'שמות',   parashot:['שמות','וארא','בא','בשלח','יתרו','משפטים','תרומה','תצוה','כי תשא','ויקהל','פקודי'] },
+    { name:'ויקרא',  parashot:['ויקרא','צו','שמיני','תזריע','מצורע','אחרי מות','קדושים','אמור','בהר','בחוקותי'] },
+    { name:'במדבר',  parashot:['במדבר','נשא','בהעלותך','שלח','קרח','חוקת','בלק','פינחס','מטות','מסעי'] },
+    { name:'דברים',  parashot:['דברים','ואתחנן','עקב','ראה','שופטים','כי תצא','כי תבוא','נצבים','וילך','האזינו','וזאת הברכה'] }
+  ];
+  // ששת הזוגות הקבועים - תמיד כפתור/דף אחד משותף
+  const PAIRS = [
+    ['ויקהל','פקודי'], ['תזריע','מצורע'], ['אחרי מות','קדושים'],
+    ['בהר','בחוקותי'], ['מטות','מסעי'], ['נצבים','וילך']
+  ];
+
+  // מפות עזר שנגזרות מהטבלאות
+  const pairKeyOf = {};   // 'מטות' -> 'מטות מסעי', 'מסעי' -> 'מטות מסעי'
+  const pairLabel = {};   // 'מטות מסעי' -> 'מטות · מסעי'
+  PAIRS.forEach(p => {
+    const key = p[0] + ' ' + p[1];
+    pairKeyOf[p[0]] = key; pairKeyOf[p[1]] = key;
+    pairLabel[key] = p[0] + ' · ' + p[1];
+  });
+  const validNames = {};  // כל שם חוקי (יחיד או זוג) -> true
+  CHUMASHIM.forEach(c => c.parashot.forEach(n => validNames[n] = true));
+  Object.keys(pairLabel).forEach(k => validNames[k] = true);
+
+  // ====== גימטריה לשנים (תשפו -> 786, לצורך מיון) ======
+  const GEM = {'א':1,'ב':2,'ג':3,'ד':4,'ה':5,'ו':6,'ז':7,'ח':8,'ט':9,'י':10,'כ':20,'ל':30,'מ':40,'נ':50,'ס':60,'ע':70,'פ':80,'צ':90,'ק':100,'ר':200,'ש':300,'ת':400,'ך':20,'ם':40,'ן':50,'ף':80,'ץ':90};
+  function yearValue(y){ let s=0; for (const ch of y){ if (!GEM[ch]) return 0; s += GEM[ch]; } return s; }
+  function yearDisplay(y){ return y.length > 1 ? y.slice(0,-1) + '"' + y.slice(-1) : y; }
+
+  // ====== פענוח שם קובץ: פרשת_<שם>_<שנה>[_חלק_<אות>].mp3/m4a ======
+  function parseFilename(path){
+    const filename = path.split('/').pop();
+    const base = filename.replace(/\.(mp3|m4a)$/i, '');
+    let tokens = base.split('_').filter(Boolean);
+    if (tokens[0] === 'פרשת') tokens = tokens.slice(1);
+    let part = null;
+    const iPart = tokens.indexOf('חלק');
+    if (iPart > -1){ part = tokens.slice(iPart+1).join(' '); tokens = tokens.slice(0, iPart); }
+    if (tokens.length < 2) return null;
+    const year = tokens[tokens.length-1];
+    const name = tokens.slice(0,-1).join(' ');
+    if (!validNames[name] || !yearValue(year)) return null;
+    // דף הבית של השיעור: הפרשה עצמה, או דף הזוג אם היא חלק מזוג
+    const pageKey = pairLabel[name] ? name : (pairKeyOf[name] || name);
+    return { path, filename, name, year, part, pageKey };
+  }
+
+  // ====== מצב ======
+  let index = {};      // pageKey -> [shiur,...]
+  let unmatched = [];
+  let view = { type:'shelf' };
+  const app = document.getElementById('app');
+  const headerMeta = document.getElementById('headerMeta');
+
+  function chumashOf(pageKey){
+    const first = pageKey.split(' · ')[0]; // לא בשימוש - ליתר ביטחון
+    for (const c of CHUMASHIM){
+      for (const p of c.parashot){
+        if (pageKey === p || (pairKeyOf[p] === pageKey)) return c.name;
+      }
+    }
+    return null;
+  }
+
+  function totalCount(){
+    let n = 0; for (const k in index) n += index[k].length; return n;
+  }
+
+  // רשימת "כפתורי" הפרשות של חומש: זוגות מאוחדים לכפתור אחד
+  function pageKeysOf(chumash){
+    const keys = []; const seen = {};
+    for (const p of chumash.parashot){
+      const key = pairKeyOf[p] || p;
+      if (!seen[key]){ seen[key] = true; keys.push(key); }
+    }
+    return keys;
+  }
+
+  // ====== תצוגות ======
+  function render(){
+    if (view.type === 'setup') return renderSetup();
+    if (view.type === 'error') return renderError();
+    if (view.type === 'chumash') return renderChumash(view.name);
+    if (view.type === 'parasha') return renderParasha(view.key);
+    return renderShelf();
+  }
+
+  function renderShelf(){
+    headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
+    let html = '<div class="shelf">';
+    for (const c of CHUMASHIM){
+      let count = 0;
+      for (const key of pageKeysOf(c)) count += (index[key] || []).length;
+      const empty = count === 0;
+      html += `<button class="volume${empty ? ' empty' : ''}" data-chumash="${c.name}" ${empty ? 'tabindex="-1"' : ''}>
+        חומש ${c.name}<span class="count">${empty ? 'בקרוב' : count + ' שיעורים'}</span></button>`;
+    }
+    html += '</div>';
+    app.innerHTML = html;
+    app.querySelectorAll('.volume:not(.empty)').forEach(btn => {
+      btn.addEventListener('click', () => { view = { type:'chumash', name:btn.dataset.chumash }; render(); scrollTop(); });
+    });
+  }
+
+  function renderChumash(name){
+    headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
+    const c = CHUMASHIM.find(x => x.name === name);
+    let html = `<div class="breadcrumb"><button id="backBtn">→ חזרה לחומשים</button></div>
+      <h2 class="page-title">חומש ${name}</h2>
+      <p class="page-sub">בחרו פרשה</p><div class="parasha-list">`;
+    for (const key of pageKeysOf(c)){
+      const count = (index[key] || []).length;
+      const label = pairLabel[key] || key;
+      const empty = count === 0;
+      html += `<button class="parasha-row${empty ? ' empty' : ''}" data-key="${key}" ${empty ? 'tabindex="-1"' : ''}>
+        <span>פרשת ${label}</span><span class="count">${empty ? '—' : count + ' שיעורים'}</span></button>`;
+    }
+    html += '</div>';
+    app.innerHTML = html;
+    document.getElementById('backBtn').addEventListener('click', () => { view = { type:'shelf' }; render(); });
+    app.querySelectorAll('.parasha-row:not(.empty)').forEach(btn => {
+      btn.addEventListener('click', () => { view = { type:'parasha', key:btn.dataset.key }; render(); scrollTop(); });
+    });
+  }
+
+  function renderParasha(key){
+    headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
+    const chumash = chumashOf(key);
+    const label = pairLabel[key] || key;
+    const shiurim = (index[key] || []).slice()
+      .sort((a,b) => yearValue(b.year) - yearValue(a.year) || (a.part||'').localeCompare(b.part||''));
+    let html = `<div class="breadcrumb"><button id="backBtn">→ חזרה לחומש ${chumash}</button></div>
+      <h2 class="page-title">פרשת ${label}</h2>
+      <p class="page-sub">כל השיעורים, מהחדש לישן</p>`;
+    if (!shiurim.length){
+      html += `<div class="no-content">אין עדיין שיעורים לפרשה זו</div>`;
+    }
+    let marked = false;
+    for (const s of shiurim){
+      const title = `${s.name === key ? '' : s.name + ' · '}${yearDisplay(s.year)}${s.part ? ' · חלק ' + s.part : ''}`;
+      const type = /\.m4a$/i.test(s.filename) ? 'audio/mp4' : 'audio/mpeg';
+      const url = R2_BASE.replace(/\/$/,'') + '/' + s.path.split('/').map(encodeURIComponent).join('/');
+      const hl = view.year && s.year === view.year;
+      const id = hl && !marked ? ' id="target-year"' : '';
+      if (hl) marked = true;
+      html += `<div class="shiur-row${hl ? ' hl' : ''}"${id}>
+        <div class="shiur-head"><span class="shiur-title">${title}</span></div>
+        <audio controls preload="none"><source src="${url}" type="${type}"></audio>
+      </div>`;
+    }
+    app.innerHTML = html;
+    document.getElementById('backBtn').addEventListener('click', () => { view = { type:'chumash', name:chumash }; render(); });
+    const target = document.getElementById('target-year');
+    if (target){
+      setTimeout(() => target.scrollIntoView({ behavior:'smooth', block:'center' }), 100);
+    }
+  }
+
+  function renderSetup(){
+    headerMeta.textContent = 'בהקמה';
+    app.innerHTML = `<div class="note">האתר עדיין בהקמה — חיבור הענן טרם הוגדר.<br>נשוב בקרוב בעז"ה.</div>`;
+  }
+
+  function renderError(msg){
+    headerMeta.textContent = '';
+    app.innerHTML = `<div class="note">שגיאה בטעינת רשימת השיעורים.<br>נסו לרענן את הדף.</div>`;
+  }
+
+  function scrollTop(){ window.scrollTo({ top:0, behavior:'smooth' }); }
+
+  // ====== חיפוש עם תפריט הצעות ======
+  const searchInput = document.getElementById('searchInput');
+  const suggestBox = document.getElementById('suggest');
+
+  // האם q מתאים לתחילת מילה כלשהי בשם ("כי" -> "כי תשא", "מות" -> "אחרי מות")
+  function wordPrefixMatch(name, q){
+    if (!q) return false;
+    const positions = [0];
+    for (let i = 0; i < name.length; i++) if (name[i] === ' ') positions.push(i + 1);
+    return positions.some(p => name.slice(p).startsWith(q));
+  }
+
+  // שמות החיפוש של כל דף: הדף עצמו + חברי הזוג ("פקודי" מוצא את ויקהל-פקודי)
+  function searchNamesOf(key){
+    const names = [key];
+    for (const p of PAIRS){ if (p[0] + ' ' + p[1] === key){ names.push(p[0], p[1]); } }
+    return names;
+  }
+
+  function isYearToken(t){
+    return /^ת[שת]/.test(t) && t.length >= 2 && t.length <= 5 && yearValue(t) > 0;
+  }
+
+  // פירוש הקלט: קודם מנסים הכל כשם פרשה; אם אין התאמות והטוקן האחרון נראה כשנה - שם + שנה
+  function interpretQuery(raw){
+    let tokens = raw.trim().split(/\s+/).filter(Boolean);
+    if (tokens[0] === 'פרשת') tokens = tokens.slice(1);
+    if (!tokens.length) return null;
+    const asName = tokens.join(' ');
+    const keysWithContent = Object.keys(index).filter(k => index[k].length);
+    const matchA = keysWithContent.filter(k => searchNamesOf(k).some(n => wordPrefixMatch(n, asName)));
+    if (matchA.length) return { keys: matchA, year: null };
+    if (tokens.length >= 2 && isYearToken(tokens[tokens.length - 1])){
+      const yearQ = tokens[tokens.length - 1];
+      const nameQ = tokens.slice(0, -1).join(' ');
+      const matchB = keysWithContent.filter(k => searchNamesOf(k).some(n => wordPrefixMatch(n, nameQ)));
+      if (matchB.length) return { keys: matchB, year: yearQ };
+    }
+    return { keys: [], year: null };
+  }
+
+  function buildSuggestions(){
+    const raw = searchInput.value;
+    if (!raw.trim()){ suggestBox.hidden = true; suggestBox.innerHTML = ''; return; }
+    const res = interpretQuery(raw);
+    let html = '';
+    let shown = 0;
+    if (res && res.keys.length){
+      for (const key of res.keys){
+        const label = pairLabel[key] || key;
+        if (res.year){
+          // הצעה לכל שנה תואמת בדף הזה
+          const years = [...new Set(index[key].map(s => s.year))]
+            .filter(y => y.startsWith(res.year))
+            .sort((a,b) => yearValue(b) - yearValue(a));
+          for (const y of years){
+            if (shown >= 8) break;
+            shown++;
+            html += `<button data-key="${key}" data-year="${y}"><span>פרשת ${label}</span><span class="yr">${yearDisplay(y)}</span></button>`;
+          }
+        } else {
+          if (shown >= 8) break;
+          shown++;
+          const n = index[key].length;
+          html += `<button data-key="${key}"><span>פרשת ${label}</span><span class="yr">${n} שיעורים</span></button>`;
+        }
+      }
+    }
+    if (!shown) html = `<div class="none">לא נמצאה פרשה מתאימה</div>`;
+    suggestBox.innerHTML = html;
+    suggestBox.hidden = false;
+    // mousedown ולא click - כדי להקדים את סגירת התפריט ב-blur
+    suggestBox.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        openSuggestion(btn.dataset.key, btn.dataset.year || null);
+      });
+    });
+  }
+
+  function openSuggestion(key, year){
+    suggestBox.hidden = true;
+    view = { type:'parasha', key, year };
+    render();
+    scrollTop();
+  }
+
+  searchInput.addEventListener('input', buildSuggestions);
+  searchInput.addEventListener('focus', buildSuggestions);
+  searchInput.addEventListener('blur', () => { setTimeout(() => { suggestBox.hidden = true; }, 150); });
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter'){
+      e.preventDefault();
+      const first = suggestBox.querySelector('button');
+      if (first) openSuggestion(first.dataset.key, first.dataset.year || null);
+    }
+    if (e.key === 'Escape'){ suggestBox.hidden = true; }
+  });
+
+  // ====== טעינה ======
+  function load(){
+    if (R2_BASE.indexOf('PASTE_') === 0){ view = { type:'setup' }; render(); return; }
+    fetch('list.json?t=' + Date.now())
+      .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+      .then(files => {
+        index = {}; unmatched = [];
+        for (const path of files){
+          const s = parseFilename(path);
+          if (s){ (index[s.pageKey] = index[s.pageKey] || []).push(s); }
+          else unmatched.push(path);
+        }
+        view = (view.type === 'chumash' || view.type === 'parasha') ? view : { type:'shelf' };
+        render();
+      })
+      .catch(() => { view = { type:'error' }; render(); });
+  }
+
+  load();
+})();
+</script>
+<script>
+document.addEventListener('play', function(e){
+  if (e.target.tagName === 'AUDIO'){
+    document.querySelectorAll('audio').forEach(function(a){
+      if (a !== e.target) a.pause();
+    });
+  }
+}, true);
+</script>
+</body>
+</html>
