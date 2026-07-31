@@ -285,7 +285,10 @@
 
   function renderSetup(){
     headerMeta.textContent = 'בהקמה';
-    app.innerHTML = `<div class="note">האתר עדיין בהקמה — חיבור הענן טרם הוגדר.<br>נשוב בקרוב בעז"ה.</div>`;
+    // מציגים את מדף החומשים (מבנה קבוע) עם הודעה מעליו - כדי שהאתר לא ייראה ריק
+    renderShelf();
+    app.insertAdjacentHTML('afterbegin',
+      `<div class="note" style="margin-bottom:22px">האתר עדיין בהקמה — השיעורים יעלו בקרוב בעז"ה.</div>`);
   }
 
   function renderError(msg){
@@ -396,7 +399,10 @@
 
   // ====== טעינה ======
   function load(){
-    if (R2_BASE.indexOf('PASTE_') === 0){ view = { type:'setup' }; render(); return; }
+    if (R2_BASE.indexOf('PASTE_') === 0){
+      document.querySelector('.search-row').hidden = true;  // אין מה לחפש עדיין
+      view = { type:'setup' }; render(); return;
+    }
     fetch('list.json?t=' + Date.now())
       .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
       .then(files => {
