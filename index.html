@@ -38,7 +38,7 @@
   }
   .volume .count { display:block; font-family:'Heebo',sans-serif; font-weight:400; font-size:12.5px; color:var(--muted); margin-top:6px; }
   .volume:hover { border-top-color:var(--brass); }
-  .volume.empty { opacity:.45; cursor:default; border-top-color:var(--line); }
+  .volume.empty { opacity:.6; border-top-color:var(--line); }
   .volume:focus-visible { outline:3px solid var(--brass); outline-offset:2px; }
 
   .breadcrumb { margin-bottom:18px; }
@@ -62,7 +62,7 @@
   }
   .parasha-row .count { font-family:'Heebo',sans-serif; font-weight:400; font-size:13px; color:var(--muted); flex-shrink:0; }
   .parasha-row:hover { border-right-color:var(--brass); }
-  .parasha-row.empty { opacity:.45; cursor:default; border-right-color:var(--line); }
+  .parasha-row.empty { opacity:.6; border-right-color:var(--line); }
   .parasha-row:focus-visible { outline:3px solid var(--brass); outline-offset:2px; }
 
   .shiur-row {
@@ -176,6 +176,7 @@
   let index = {};      // pageKey -> [shiur,...]
   let unmatched = [];
   let view = { type:'shelf' };
+  let setupMode = false;
   const app = document.getElementById('app');
   const headerMeta = document.getElementById('headerMeta');
 
@@ -205,7 +206,6 @@
 
   // ====== תצוגות ======
   function render(){
-    if (view.type === 'setup') return renderSetup();
     if (view.type === 'error') return renderError();
     if (view.type === 'chumash') return renderChumash(view.name);
     if (view.type === 'parasha') return renderParasha(view.key);
@@ -213,24 +213,25 @@
   }
 
   function renderShelf(){
-    headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
+    headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
     let html = '<div class="shelf">';
     for (const c of CHUMASHIM){
       let count = 0;
       for (const key of pageKeysOf(c)) count += (index[key] || []).length;
       const empty = count === 0;
-      html += `<button class="volume${empty ? ' empty' : ''}" data-chumash="${c.name}" ${empty ? 'tabindex="-1"' : ''}>
-        חומש ${c.name}<span class="count">${empty ? 'בקרוב' : count + ' שיעורים'}</span></button>`;
+      html += `<button class="volume${empty ? ' empty' : ''}" data-chumash="${c.name}">
+        חומש ${c.name}<span class="count">${empty ? 'אין עדיין שיעורים' : count + ' שיעורים'}</span></button>`;
     }
     html += '</div>';
+    if (setupMode) html = `<div class="note" style="margin-bottom:22px">האתר עדיין בהקמה — השיעורים יעלו בקרוב בעז"ה.</div>` + html;
     app.innerHTML = html;
-    app.querySelectorAll('.volume:not(.empty)').forEach(btn => {
+    app.querySelectorAll('.volume').forEach(btn => {
       btn.addEventListener('click', () => { view = { type:'chumash', name:btn.dataset.chumash }; render(); scrollTop(); });
     });
   }
 
   function renderChumash(name){
-    headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
+    headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
     const c = CHUMASHIM.find(x => x.name === name);
     let html = `<div class="breadcrumb"><button id="backBtn">→ חזרה לחומשים</button></div>
       <h2 class="page-title">חומש ${name}</h2>
@@ -239,19 +240,19 @@
       const count = (index[key] || []).length;
       const label = pairLabel[key] || key;
       const empty = count === 0;
-      html += `<button class="parasha-row${empty ? ' empty' : ''}" data-key="${key}" ${empty ? 'tabindex="-1"' : ''}>
+      html += `<button class="parasha-row${empty ? ' empty' : ''}" data-key="${key}">
         <span>פרשת ${label}</span><span class="count">${empty ? '—' : count + ' שיעורים'}</span></button>`;
     }
     html += '</div>';
     app.innerHTML = html;
     document.getElementById('backBtn').addEventListener('click', () => { view = { type:'shelf' }; render(); });
-    app.querySelectorAll('.parasha-row:not(.empty)').forEach(btn => {
+    app.querySelectorAll('.parasha-row').forEach(btn => {
       btn.addEventListener('click', () => { view = { type:'parasha', key:btn.dataset.key }; render(); scrollTop(); });
     });
   }
 
   function renderParasha(key){
-    headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
+    headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
     const chumash = chumashOf(key);
     const label = pairLabel[key] || key;
     const shiurim = (index[key] || []).slice()
@@ -283,13 +284,6 @@
     }
   }
 
-  function renderSetup(){
-    headerMeta.textContent = 'בהקמה';
-    // מציגים את מדף החומשים (מבנה קבוע) עם הודעה מעליו - כדי שהאתר לא ייראה ריק
-    renderShelf();
-    app.insertAdjacentHTML('afterbegin',
-      `<div class="note" style="margin-bottom:22px">האתר עדיין בהקמה — השיעורים יעלו בקרוב בעז"ה.</div>`);
-  }
 
   function renderError(msg){
     headerMeta.textContent = '';
@@ -401,7 +395,8 @@
   function load(){
     if (R2_BASE.indexOf('PASTE_') === 0){
       document.querySelector('.search-row').hidden = true;  // אין מה לחפש עדיין
-      view = { type:'setup' }; render(); return;
+      setupMode = true;
+      view = { type:'shelf' }; render(); return;
     }
     fetch('list.json?t=' + Date.now())
       .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
