@@ -121,7 +121,7 @@
 (function(){
   // ====== הגדרות ======
   // כתובת הענן הציבורית של דלי הפרשות. עד שהדלי נוצר - האתר יציג הודעת הקמה.
-  const R2_BASE = "PASTE_R2_PUBLIC_URL_HERE";
+  const R2_BASE = "https://pub-c502103793ec448b9964b8779d053cd4.r2.dev";
 
   // ====== האמת הקבועה: פרשות, סדר, ושיוך לחומש ======
   const CHUMASHIM = [
@@ -399,8 +399,13 @@
       view = { type:'shelf' }; render(); return;
     }
     fetch('list.json?t=' + Date.now())
-      .then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+      .then(r => {
+        if (r.status === 404) return [];   // הרשימה טרם נוצרה - מצב הקמה
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+      })
       .then(files => {
+        if (!files.length) setupMode = true;
         index = {}; unmatched = [];
         for (const path of files){
           const s = parseFilename(path);
