@@ -12,6 +12,9 @@
   :root {
     --paper:#f5efdf; --ink:#26211a; --accent:#1f4a33; /* ירוק עמוק - הצבע המבחין של אתר הפרשות */
     --accent-soft:#2c5c42; --brass:#a1782f; --line:#d8cbaa; --muted:#7a7061;
+    --shadow-sm: 0 1px 3px rgba(38,33,26,0.08);
+    --shadow-md: 0 6px 16px rgba(38,33,26,0.14);
+    --shadow-accent: 0 8px 18px rgba(31,74,51,0.24);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
@@ -23,8 +26,10 @@
   .wrap { max-width:760px; margin:0 auto; padding:28px 18px 80px; }
 
   header.hero { text-align:center; padding:26px 0 20px; border-bottom:2px solid var(--accent); margin-bottom:26px; }
-  header.hero h1 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(30px,7vw,44px); color:var(--accent); }
+  header.hero h1 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(30px,7vw,44px); color:var(--accent); cursor:pointer; transition:color .15s ease; }
+  header.hero h1:hover { color:var(--brass); }
   header.hero .byline { font-family:'Frank Ruhl Libre',serif; font-size:clamp(16px,4vw,20px); margin-top:6px; }
+  .ornament { display:flex; justify-content:center; color:var(--brass); opacity:.8; margin:10px 0 4px; }
   header.hero .meta { margin-top:10px; font-size:14px; color:var(--muted); }
 
   .shelf { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:14px; }
@@ -34,20 +39,37 @@
     background:linear-gradient(180deg,#fbf7ea, #f1e9d2);
     border:1px solid var(--line); border-top:6px solid var(--accent);
     border-radius:4px; color:var(--ink);
-    box-shadow:0 2px 0 rgba(38,33,26,.12);
+    box-shadow:0 2px 0 rgba(38,33,26,.12), var(--shadow-sm);
+    transition:transform .18s cubic-bezier(.22,.8,.25,1), box-shadow .18s ease, border-top-color .18s ease;
+    animation: volumeIn .32s cubic-bezier(.22,.8,.25,1) both;
   }
   .volume .count { display:block; font-family:'Heebo',sans-serif; font-weight:400; font-size:12.5px; color:var(--muted); margin-top:6px; }
-  .volume:hover { border-top-color:var(--brass); }
+  .volume:hover { border-top-color:var(--brass); transform:translateY(-4px) scale(1.02); box-shadow:0 2px 0 rgba(38,33,26,.12), var(--shadow-accent); }
   .volume.empty { border-top-color:var(--line); }
+  .volume.empty:hover { border-top-color:var(--muted); box-shadow:0 2px 0 rgba(38,33,26,.12), var(--shadow-sm); }
   .volume:focus-visible { outline:3px solid var(--brass); outline-offset:2px; }
 
-  .breadcrumb { margin-bottom:18px; }
+  @keyframes volumeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes rowIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeSlideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  #app.fade-in { animation: fadeSlideIn .28s ease both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .volume, .parasha-row, .shiur-row, #app.fade-in, .refresh-spin { animation:none !important; transition:none !important; }
+  }
+
+  .breadcrumb { margin-bottom:18px; display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
   .breadcrumb button {
     font-family:'Heebo',sans-serif; font-size:14.5px; cursor:pointer;
     background:none; border:1px solid var(--line); border-radius:20px;
     padding:8px 16px; color:var(--accent);
+    transition:border-color .15s ease, box-shadow .15s ease;
   }
-  .breadcrumb button:hover { border-color:var(--accent); }
+  .breadcrumb button:hover { border-color:var(--accent); box-shadow:var(--shadow-sm); }
+  .breadcrumb button:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
+  .breadcrumb .home-link { display:inline-flex; align-items:center; gap:4px; color:var(--muted); }
+  .breadcrumb .home-link:hover { color:var(--accent); border-color:var(--accent); }
+  .breadcrumb-sep { color:var(--muted); font-size:12px; }
 
   h2.page-title { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(26px,6vw,34px); color:var(--accent); margin-bottom:4px; }
   .page-sub { color:var(--muted); font-size:14.5px; margin-bottom:20px; }
@@ -59,27 +81,67 @@
     padding:15px 18px; cursor:pointer; text-align:right;
     background:#fbf7ea; border:1px solid var(--line); border-right:6px solid var(--accent);
     border-radius:4px; color:var(--ink); width:100%;
+    box-shadow:var(--shadow-sm);
+    transition:transform .18s cubic-bezier(.22,.8,.25,1), box-shadow .18s ease, border-right-color .18s ease;
+    animation: volumeIn .32s cubic-bezier(.22,.8,.25,1) both;
   }
   .parasha-row .count { font-family:'Heebo',sans-serif; font-weight:400; font-size:13px; color:var(--muted); flex-shrink:0; }
-  .parasha-row:hover { border-right-color:var(--brass); }
+  .parasha-row:hover { border-right-color:var(--brass); transform:translateY(-3px); box-shadow:var(--shadow-md); }
   .parasha-row.empty { border-right-color:var(--line); }
+  .parasha-row.empty:hover { transform:translateY(-2px); box-shadow:var(--shadow-sm); }
   .parasha-row:focus-visible { outline:3px solid var(--brass); outline-offset:2px; }
 
   .shiur-row {
-    background:#fbf7ea; border:1px solid var(--line); border-radius:6px;
-    padding:14px 16px; margin-bottom:14px;
+    background:#fbf7ea; border:1px solid var(--line); border-right:4px solid var(--brass);
+    border-radius:6px; padding:14px 16px; margin-bottom:14px;
+    box-shadow:var(--shadow-sm);
+    transition:box-shadow .18s ease, border-right-color .18s ease;
+    animation: rowIn .3s ease both;
   }
+  .shiur-row:hover { box-shadow:var(--shadow-md); border-right-color:var(--accent); }
   .shiur-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
   .shiur-title { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px; color:var(--accent); }
   audio { width:100%; }
 
+  .refresh-row { text-align:left; margin-bottom:18px; }
+  .refresh-btn {
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    font-family:'Heebo',sans-serif; font-size:13px; color:var(--accent);
+    background:none; border:1px solid var(--accent); padding:6px 14px; border-radius:20px;
+    transition:background .15s ease, color .15s ease, box-shadow .15s ease;
+  }
+  .refresh-btn:hover { background:var(--accent); color:var(--paper); box-shadow:var(--shadow-sm); }
+  .refresh-btn:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
+  .refresh-btn.is-loading { cursor:default; opacity:.85; }
+  .refresh-spin {
+    width:12px; height:12px; border:2px solid currentColor; border-top-color:transparent;
+    border-radius:50%; display:none; flex-shrink:0;
+  }
+  .refresh-btn.is-loading .refresh-spin { display:inline-block; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .toast {
+    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(16px);
+    background:var(--ink); color:var(--paper); padding:11px 22px; border-radius:22px;
+    font-size:14px; font-weight:600; opacity:0; pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    box-shadow:0 10px 24px rgba(0,0,0,0.28); z-index:50;
+    max-width:calc(100vw - 40px); text-align:center;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
   .search-row { position:relative; margin-bottom:24px; }
+  .search-icon {
+    position:absolute; top:50%; right:18px; transform:translateY(-50%);
+    color:var(--muted); pointer-events:none;
+  }
   .search-input {
     width:100%; box-sizing:border-box; font-family:'Heebo',sans-serif; font-size:16px;
-    padding:13px 18px; border:1px solid var(--line); border-radius:24px;
+    padding:13px 46px 13px 18px; border:1px solid var(--line); border-radius:24px;
     background:#fbf7ea; color:var(--ink);
+    transition:border-color .15s ease;
   }
-  .search-input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  .search-input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
   .suggest {
     position:absolute; top:calc(100% + 6px); right:0; left:0; z-index:6;
     background:#fbf7ea; border:1px solid var(--line); border-radius:10px;
@@ -106,16 +168,32 @@
 <body>
 <div class="wrap">
   <header class="hero">
-    <h1>שיעורי פרשת שבוע</h1>
+    <h1 id="siteTitle">שיעורי פרשת שבוע</h1>
     <p class="byline">מאת הרה"ג רבי יצחק ולדומירסקי שליט"א</p>
+    <div class="ornament" aria-hidden="true">
+      <svg viewBox="0 0 220 20" width="180" height="18">
+        <line x1="0" y1="10" x2="85" y2="10" stroke="currentColor" stroke-width="1"></line>
+        <path d="M110 1 L119 10 L110 19 L101 10 Z" fill="currentColor"></path>
+        <line x1="135" y1="10" x2="220" y2="10" stroke="currentColor" stroke-width="1"></line>
+      </svg>
+    </div>
     <p class="meta" id="headerMeta">טוען…</p>
   </header>
+  <div class="refresh-row">
+    <button class="refresh-btn" id="refreshBtn">
+      <span class="refresh-spin" aria-hidden="true"></span>
+      <span id="refreshLabel">בדוק שיעורים חדשים</span>
+    </button>
+  </div>
   <div class="search-row">
+    <svg class="search-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
     <input type="text" class="search-input" id="searchInput" placeholder="חיפוש פרשה — אפשר גם עם שנה: נח תשפה" autocomplete="off">
     <div class="suggest" id="suggest" hidden></div>
   </div>
   <div id="app"></div>
 </div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 (function(){
@@ -204,12 +282,33 @@
     return keys;
   }
 
+  const ICON_HOME = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10v9.5a1 1 0 0 0 1 1H9.5v-6h5v6H17.5a1 1 0 0 0 1-1V10"></path></svg>';
+  const BREADCRUMB_HOME = `<button class="home-link" id="homeBtn">${ICON_HOME} לדף הבית</button><span class="breadcrumb-sep">·</span>`;
+
+  // כפתור "לדף הבית" - מחזיר לארון החומשים מכל עומק ניווט בקליק אחד
+  function bindHomeBtn(){
+    const btn = document.getElementById('homeBtn');
+    if (!btn) return;
+    btn.addEventListener('click', () => { view = { type:'shelf' }; render(); scrollTop(); });
+  }
+
   // ====== תצוגות ======
   function render(){
-    if (view.type === 'error') return renderError();
-    if (view.type === 'chumash') return renderChumash(view.name);
-    if (view.type === 'parasha') return renderParasha(view.key);
-    return renderShelf();
+    if (view.type === 'error') renderError();
+    else if (view.type === 'chumash') renderChumash(view.name);
+    else if (view.type === 'parasha') renderParasha(view.key);
+    else renderShelf();
+
+    // אנימציית כניסה: הדף נכנס בעדינות, והכרטיסים בתוכו במפל קל
+    app.classList.remove('fade-in');
+    void app.offsetWidth;
+    app.classList.add('fade-in');
+    app.querySelectorAll('.shelf .volume, .parasha-list .parasha-row').forEach((el, i) => {
+      el.style.animationDelay = Math.min(i * 25, 400) + 'ms';
+    });
+    app.querySelectorAll('.shiur-row').forEach((el, i) => {
+      el.style.animationDelay = Math.min(i * 40, 400) + 'ms';
+    });
   }
 
   function renderShelf(){
@@ -233,7 +332,7 @@
   function renderChumash(name){
     headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
     const c = CHUMASHIM.find(x => x.name === name);
-    let html = `<div class="breadcrumb"><button id="backBtn">→ חזרה לחומשים</button></div>
+    let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ חזרה לחומשים</button></div>
       <h2 class="page-title">חומש ${name}</h2>
       <p class="page-sub">בחרו פרשה</p><div class="parasha-list">`;
     for (const key of pageKeysOf(c)){
@@ -245,6 +344,7 @@
     }
     html += '</div>';
     app.innerHTML = html;
+    bindHomeBtn();
     document.getElementById('backBtn').addEventListener('click', () => { view = { type:'shelf' }; render(); });
     app.querySelectorAll('.parasha-row').forEach(btn => {
       btn.addEventListener('click', () => { view = { type:'parasha', key:btn.dataset.key }; render(); scrollTop(); });
@@ -257,7 +357,7 @@
     const label = pairLabel[key] || key;
     const shiurim = (index[key] || []).slice()
       .sort((a,b) => yearValue(b.year) - yearValue(a.year) || (a.part||'').localeCompare(b.part||''));
-    let html = `<div class="breadcrumb"><button id="backBtn">→ חזרה לחומש ${chumash}</button></div>
+    let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ חזרה לחומש ${chumash}</button></div>
       <h2 class="page-title">פרשת ${label}</h2>
       <p class="page-sub">כל השיעורים, מהחדש לישן</p>`;
     if (!shiurim.length){
@@ -277,6 +377,7 @@
       </div>`;
     }
     app.innerHTML = html;
+    bindHomeBtn();
     document.getElementById('backBtn').addEventListener('click', () => { view = { type:'chumash', name:chumash }; render(); });
     const target = document.getElementById('target-year');
     if (target){
@@ -392,13 +493,17 @@
   });
 
   // ====== טעינה ======
+  // מחזיר הבטחה שנפתרת ל-true/false, כדי שכפתור הרענון יוכל לדווח למשתמש
+  // בפועל מה קרה, ולא רק לרנדר בשקט.
   function load(){
     if (R2_BASE.indexOf('PASTE_') === 0){
       document.querySelector('.search-row').hidden = true;  // אין מה לחפש עדיין
+      document.querySelector('.refresh-row').hidden = true;
       setupMode = true;
-      view = { type:'shelf' }; render(); return;
+      view = { type:'shelf' }; render();
+      return Promise.resolve(true);
     }
-    fetch('list.json?t=' + Date.now())
+    return fetch('list.json?t=' + Date.now())
       .then(r => {
         if (r.status === 404) return [];   // הרשימה טרם נוצרה - מצב הקמה
         if (!r.ok) throw new Error('http ' + r.status);
@@ -414,9 +519,39 @@
         }
         view = (view.type === 'chumash' || view.type === 'parasha') ? view : { type:'shelf' };
         render();
+        return true;
       })
-      .catch(() => { view = { type:'error' }; render(); });
+      .catch(() => { view = { type:'error' }; render(); return false; });
   }
+
+  let toastTimer;
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  const refreshBtn = document.getElementById('refreshBtn');
+  const refreshLabel = document.getElementById('refreshLabel');
+  refreshBtn.addEventListener('click', () => {
+    if (refreshBtn.classList.contains('is-loading')) return;
+    refreshBtn.classList.add('is-loading');
+    refreshLabel.textContent = 'בודק…';
+    const before = totalCount();
+    load().then(ok => {
+      refreshBtn.classList.remove('is-loading');
+      refreshLabel.textContent = 'בדוק שיעורים חדשים';
+      if (!ok){ showToast('לא הצלחנו להתחבר לשרת — נסו שוב בעוד רגע'); return; }
+      const added = totalCount() - before;
+      showToast(added > 0 ? `נמצאו ${added} שיעורים חדשים` : 'הרשימה מעודכנת — אין חדש');
+    });
+  });
+
+  document.getElementById('siteTitle').addEventListener('click', () => {
+    view = { type:'shelf' }; render(); scrollTop();
+  });
 
   load();
 })();
