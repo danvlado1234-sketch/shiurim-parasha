@@ -101,6 +101,13 @@
   .shiur-row:hover { box-shadow:var(--shadow-md); border-right-color:var(--accent); }
   .shiur-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
   .shiur-title { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px; color:var(--accent); }
+  .share-btn {
+    all:unset; cursor:pointer; display:inline-flex; align-items:center;
+    color:var(--muted); padding:4px; border-radius:4px;
+    transition:color .15s ease, background .15s ease;
+  }
+  .share-btn:hover { color:var(--accent); background:rgba(31,74,51,0.08); }
+  .share-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
   audio { width:100%; }
 
   .refresh-row { text-align:left; margin-bottom:18px; }
@@ -285,6 +292,43 @@
   const ICON_HOME = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10v9.5a1 1 0 0 0 1 1H9.5v-6h5v6H17.5a1 1 0 0 0 1-1V10"></path></svg>';
   const BREADCRUMB_HOME = `<button class="home-link" id="homeBtn">${ICON_HOME} לדף הבית</button><span class="breadcrumb-sep">·</span>`;
 
+  const ICON_LINK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
+
+  // בונה קישור ישיר לפרשה+שנה מסוימת - אותה גרנולריות שתפריט ההצעות כבר תומך בה
+  function directLink(key, year){
+    const base = location.origin + location.pathname;
+    return `${base}?parasha=${encodeURIComponent(key)}&year=${encodeURIComponent(year)}`;
+  }
+
+  function escAttr(s){ return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;'); }
+
+  function fallbackCopy(url){
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('הקישור הועתק'); }
+    catch (e){ showToast('לא הצלחנו להעתיק — נסו שוב'); }
+    document.body.removeChild(ta);
+  }
+
+  function copyLink(url){
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(() => showToast('הקישור הועתק'), () => fallbackCopy(url));
+    } else {
+      fallbackCopy(url);
+    }
+  }
+
+  // כפתורי שיתוף מטופלים בהאצלת אירוע יחידה על app, כי app.innerHTML
+  // מוחלף בכל רינדור - כך לא צריך לחבר מחדש מאזין לכל כפתור בנפרד.
+  app.addEventListener('click', (e) => {
+    const btn = e.target.closest('.share-btn');
+    if (btn) copyLink(btn.dataset.link);
+  });
+
   // כפתור "לדף הבית" - מחזיר לארון החומשים מכל עומק ניווט בקליק אחד
   function bindHomeBtn(){
     const btn = document.getElementById('homeBtn');
@@ -371,8 +415,12 @@
       const hl = view.year && s.year === view.year;
       const id = hl && !marked ? ' id="target-year"' : '';
       if (hl) marked = true;
+      const shareUrl = directLink(key, s.year);
       html += `<div class="shiur-row${hl ? ' hl' : ''}"${id}>
-        <div class="shiur-head"><span class="shiur-title">${title}</span></div>
+        <div class="shiur-head">
+          <span class="shiur-title">${title}</span>
+          <button class="share-btn" data-link="${escAttr(shareUrl)}" title="העתק קישור לשיעור זה" aria-label="העתק קישור לשיעור זה">${ICON_LINK}</button>
+        </div>
         <audio controls preload="none"><source src="${url}" type="${type}"></audio>
       </div>`;
     }
@@ -553,7 +601,14 @@
     view = { type:'shelf' }; render(); scrollTop();
   });
 
-  load();
+  load().then(() => {
+    // קישור ישיר לפרשה מסוימת: ?parasha=<key>&year=<שנה>
+    const params = new URLSearchParams(location.search);
+    const key = params.get('parasha');
+    if (key && index[key]){
+      openSuggestion(key, params.get('year') || null);
+    }
+  });
 })();
 </script>
 <script>
