@@ -67,15 +67,16 @@
   .breadcrumb { margin-bottom:18px; display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
   .breadcrumb button {
     font-family:'Heebo',sans-serif; font-size:14.5px; cursor:pointer;
-    background:none; border:1px solid var(--line); border-radius:20px;
+    background:#fbf7ea; border:1px solid var(--line); border-radius:20px;
     padding:8px 16px; color:var(--accent);
+    box-shadow:var(--shadow-sm);
     transition:border-color .15s ease, box-shadow .15s ease;
   }
-  .breadcrumb button:hover { border-color:var(--accent); box-shadow:var(--shadow-sm); }
+  .breadcrumb button:hover { border-color:var(--accent); box-shadow:var(--shadow-md); }
   .breadcrumb button:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
-  .breadcrumb .home-link { display:inline-flex; align-items:center; gap:4px; color:var(--muted); }
+  .breadcrumb .home-link { display:inline-flex; align-items:center; gap:4px; color:var(--ink); }
   .breadcrumb .home-link:hover { color:var(--accent); border-color:var(--accent); }
-  .breadcrumb-sep { color:var(--muted); font-size:12px; }
+  .breadcrumb-sep { color:var(--ink); font-size:12px; }
 
   h2.page-title { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(26px,6vw,34px); color:var(--accent); margin-bottom:4px; }
   .page-sub { color:var(--muted); font-size:14.5px; margin-bottom:20px; }
@@ -120,7 +121,8 @@
   .refresh-btn {
     display:inline-flex; align-items:center; gap:8px; cursor:pointer;
     font-family:'Heebo',sans-serif; font-size:13px; color:var(--accent);
-    background:none; border:1px solid var(--accent); padding:6px 14px; border-radius:20px;
+    background:#fbf7ea; border:1px solid var(--accent); padding:6px 14px; border-radius:20px;
+    box-shadow:var(--shadow-sm);
     transition:background .15s ease, color .15s ease, box-shadow .15s ease;
   }
   .refresh-btn:hover { background:var(--accent); color:var(--paper); box-shadow:var(--shadow-sm); }
