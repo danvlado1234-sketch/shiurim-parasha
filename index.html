@@ -31,9 +31,8 @@
   }
   .wrap { max-width:760px; margin:0 auto; padding:28px 18px 80px; }
 
-  header.hero { text-align:center; padding:64px 20px 40px; margin-bottom:26px; }
-  header.hero h1 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(30px,7vw,44px); color:#f6ecd3; cursor:pointer; transition:color .15s ease; text-shadow:0 2px 12px rgba(20,14,8,0.45); }
-  header.hero h1:hover { color:#d9b876; }
+  header.hero { text-align:center; padding:24px 20px 16px; margin-bottom:16px; }
+  header.hero h1 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(30px,7vw,44px); color:#f6ecd3; text-shadow:0 2px 12px rgba(20,14,8,0.45); }
   header.hero .byline { font-family:'Frank Ruhl Libre',serif; font-size:clamp(16px,4vw,20px); margin-top:6px; color:#f0e6c8; text-shadow:0 1px 8px rgba(20,14,8,0.4); }
   .ornament { display:flex; justify-content:center; color:#d9b876; opacity:.9; margin:10px 0 4px; }
   header.hero .meta { margin-top:10px; font-size:14px; color:#e7dcc0; }
@@ -603,10 +602,6 @@
       const added = totalCount() - before;
       showToast(added > 0 ? `נמצאו ${added} שיעורים חדשים` : 'הרשימה מעודכנת — אין חדש');
     });
-  });
-
-  document.getElementById('siteTitle').addEventListener('click', () => {
-    view = { type:'shelf' }; render(); scrollTop();
   });
 
   load().then(() => {
