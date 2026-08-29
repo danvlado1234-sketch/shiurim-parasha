@@ -114,6 +114,14 @@
   }
   .share-btn:hover { color:var(--accent); background:rgba(31,74,51,0.08); }
   .share-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
+  .shiur-actions { display:inline-flex; align-items:center; gap:6px; flex-shrink:0; }
+  .shiur-actions .text-link {
+    display:inline-flex; align-items:center; gap:4px;
+    font-size:12.5px; color:var(--accent); text-decoration:none;
+    border:1px solid var(--accent); border-radius:20px; padding:3px 10px;
+    transition:background .15s ease, color .15s ease;
+  }
+  .shiur-actions .text-link:hover { background:var(--accent); color:var(--paper); }
   audio { width:100%; }
 
   .refresh-row { text-align:left; margin-bottom:18px; }
@@ -267,6 +275,7 @@
   // ====== מצב ======
   let index = {};      // pageKey -> [shiur,...]
   let unmatched = [];
+  let pdfPaths = new Set();   // נתיבי סיכומי PDF שקיימים (אותו נתיב כמו השמע, סיומת שונה)
   let view = { type:'shelf' };
   let setupMode = false;
   const app = document.getElementById('app');
@@ -300,6 +309,7 @@
   const BREADCRUMB_HOME = `<button class="home-link" id="homeBtn">${ICON_HOME} לדף הבית</button><span class="breadcrumb-sep">·</span>`;
 
   const ICON_LINK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
+  const ICON_DOWNLOAD = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 11 5 5 5-5"></path><path d="M5 21h14"></path></svg>';
 
   // בונה קישור ישיר לפרשה+שנה מסוימת - אותה גרנולריות שתפריט ההצעות כבר תומך בה
   function directLink(key, year){
@@ -423,10 +433,16 @@
       const id = hl && !marked ? ' id="target-year"' : '';
       if (hl) marked = true;
       const shareUrl = directLink(key, s.year);
+      const pdfPath = s.path.replace(/\.(m4a|mp3)$/i, '.pdf');
+      const hasSummary = pdfPaths.has(pdfPath);
+      const pdfUrl = R2_BASE.replace(/\/$/,'') + '/' + pdfPath.split('/').map(encodeURIComponent).join('/');
       html += `<div class="shiur-row${hl ? ' hl' : ''}"${id}>
         <div class="shiur-head">
           <span class="shiur-title">${title}</span>
-          <button class="share-btn" data-link="${escAttr(shareUrl)}" title="העתק קישור לשיעור זה" aria-label="העתק קישור לשיעור זה">${ICON_LINK}</button>
+          <span class="shiur-actions">
+            ${hasSummary ? `<a class="text-link" href="${pdfUrl}" target="_blank" rel="noopener" title="הורד סיכום השיעור">${ICON_DOWNLOAD} סיכום</a>` : ''}
+            <button class="share-btn" data-link="${escAttr(shareUrl)}" title="העתק קישור לשיעור זה" aria-label="העתק קישור לשיעור זה">${ICON_LINK}</button>
+          </span>
         </div>
         <audio controls preload="none"><source src="${url}" type="${type}"></audio>
       </div>`;
@@ -566,8 +582,11 @@
       })
       .then(files => {
         if (!files.length) setupMode = true;
-        index = {}; unmatched = [];
+        index = {}; unmatched = []; pdfPaths = new Set();
         for (const path of files){
+          // קבצי סיכום PDF לא עוברים דרך parseFilename - הם נשמרים בצד
+          // כדי לבדוק בהמשך אם יש סיכום זמין לכל שיעור (אותו נתיב, סיומת שונה)
+          if (/\.pdf$/i.test(path)){ pdfPaths.add(path); continue; }
           const s = parseFilename(path);
           if (s){ (index[s.pageKey] = index[s.pageKey] || []).push(s); }
           else unmatched.push(path);
