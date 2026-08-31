@@ -254,22 +254,38 @@
   function yearValue(y){ let s=0; for (const ch of y){ if (!GEM[ch]) return 0; s += GEM[ch]; } return s; }
   function yearDisplay(y){ return y.length > 1 ? y.slice(0,-1) + '"' + y.slice(-1) : y; }
 
-  // ====== פענוח שם קובץ: פרשת_<שם>_<שנה>[_חלק_<אות>].mp3/m4a ======
+  // ====== פענוח שם קובץ ======
+  // פרשת_<שם>_<שנה>[_שיעור_<אות>][_חלק_<אות>].mp3/m4a
+  //   "שיעור ב" = שיעור נפרד ועצמאי שני על אותה פרשה באותה שנה
+  //   "חלק ב"   = המשך של אותו שיעור עצמו (הקלטה שנחתכה לשניים)
+  // שניהם אופציונליים ויכולים להופיע יחד.
   function parseFilename(path){
     const filename = path.split('/').pop();
     const base = filename.replace(/\.(mp3|m4a)$/i, '');
     let tokens = base.split('_').filter(Boolean);
     if (tokens[0] === 'פרשת') tokens = tokens.slice(1);
-    let part = null;
+    let part = null, lesson = null;
+    const iLesson = tokens.indexOf('שיעור');
     const iPart = tokens.indexOf('חלק');
-    if (iPart > -1){ part = tokens.slice(iPart+1).join(' '); tokens = tokens.slice(0, iPart); }
+    // כל תגית נקראת עד לתגית הבאה (או עד הסוף), כדי שהסדר ביניהן לא ישנה
+    if (iLesson > -1){
+      const end = (iPart > iLesson) ? iPart : tokens.length;
+      lesson = tokens.slice(iLesson + 1, end).join(' ');
+    }
+    if (iPart > -1){
+      const end = (iLesson > iPart) ? iLesson : tokens.length;
+      part = tokens.slice(iPart + 1, end).join(' ');
+    }
+    // חותכים את שם הפרשה+שנה עד התגית המוקדמת מבין השתיים
+    const marks = [iLesson, iPart].filter(i => i > -1);
+    if (marks.length) tokens = tokens.slice(0, Math.min.apply(null, marks));
     if (tokens.length < 2) return null;
     const year = tokens[tokens.length-1];
     const name = tokens.slice(0,-1).join(' ');
     if (!validNames[name] || !yearValue(year)) return null;
     // דף הבית של השיעור: הפרשה עצמה, או דף הזוג אם היא חלק מזוג
     const pageKey = pairLabel[name] ? name : (pairKeyOf[name] || name);
-    return { path, filename, name, year, part, pageKey };
+    return { path, filename, name, year, part, lesson, pageKey };
   }
 
   // ====== מצב ======
@@ -417,7 +433,9 @@
     const chumash = chumashOf(key);
     const label = pairLabel[key] || key;
     const shiurim = (index[key] || []).slice()
-      .sort((a,b) => yearValue(b.year) - yearValue(a.year) || (a.part||'').localeCompare(b.part||''));
+      .sort((a,b) => yearValue(b.year) - yearValue(a.year)
+        || (a.lesson||'').localeCompare(b.lesson||'')
+        || (a.part||'').localeCompare(b.part||''));
     let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ חזרה לחומש ${chumash}</button></div>
       <h2 class="page-title">פרשת ${label}</h2>
       <p class="page-sub">כל השיעורים, מהחדש לישן</p>`;
@@ -426,7 +444,7 @@
     }
     let marked = false;
     for (const s of shiurim){
-      const title = `${s.name === key ? '' : s.name + ' · '}${yearDisplay(s.year)}${s.part ? ' · חלק ' + s.part : ''}`;
+      const title = `${s.name === key ? '' : s.name + ' · '}${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}`;
       const type = /\.m4a$/i.test(s.filename) ? 'audio/mp4' : 'audio/mpeg';
       const url = R2_BASE.replace(/\/$/,'') + '/' + s.path.split('/').map(encodeURIComponent).join('/');
       const hl = view.year && s.year === view.year;
