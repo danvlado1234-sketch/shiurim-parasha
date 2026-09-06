@@ -347,7 +347,10 @@ if ($needSummary.Count -gt 0) {
                 }
 
                 Write-Status "כותב את הוורט על: $leafName"
-                $vortPrompt = if ($leafName -like 'מועד_*') { $vortPromptMoed } else { $vortPromptParasha }
+                # זיהוי לפי תיקיית האב ("מועדים/...") ולא לפי שם הקובץ - שמות
+                # קבצי מועדים אינם מתחילים ב"מועד_" (שם הקובץ הוא רק <שם>_<שנה>,
+                # התיקייה כבר אומרת שזה מועד - ראו CLAUDE.md).
+                $vortPrompt = if ($relPath -like 'מועדים/*') { $vortPromptMoed } else { $vortPromptParasha }
                 $fullPrompt = "$vortPrompt`n`n--- תמלול השיעור ---`n$transcript"
                 $finalText = Invoke-GeminiTextWithFallback -prompt $fullPrompt
 
