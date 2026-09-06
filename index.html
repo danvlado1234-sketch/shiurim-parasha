@@ -256,8 +256,12 @@
   // מועד או פרשה? קובע את המילה שמוצגת לפני השם בכל מקום באתר
   const moadimNames = {};
   (CHUMASHIM.find(c => c.name === 'מועדים') || { parashot:[] }).parashot.forEach(n => moadimNames[n] = true);
-  function itemPrefixOf(key){ return moadimNames[key] ? 'מועד' : 'פרשת'; }
   function itemNounOf(key){ return moadimNames[key] ? 'מועד זה' : 'פרשה זו'; }
+  // תווית תצוגה: לפרשה מוצג "פרשת X", למועד מוצג רק "X" בלי המילה "מועד" -
+  // מיותר ואפילו מוזר בתוך דף שכבר נקרא "מועדים" (למשל "מועד חנוכה" בתוך
+  // עמוד מועדים). ה"מועד"/"פרשת" עדיין קיימים בשם הקובץ ובלוגיקת הפענוח -
+  // זה רק עניין תצוגתי.
+  function itemLabel(key, label){ return moadimNames[key] ? label : ('פרשת ' + label); }
 
   // ====== גימטריה לשנים (תשפו -> 786, לצורך מיון) ======
   const GEM = {'א':1,'ב':2,'ג':3,'ד':4,'ה':5,'ו':6,'ז':7,'ח':8,'ט':9,'י':10,'כ':20,'ל':30,'מ':40,'נ':50,'ס':60,'ע':70,'פ':80,'צ':90,'ק':100,'ר':200,'ש':300,'ת':400,'ך':20,'ם':40,'ן':50,'ף':80,'ץ':90};
@@ -429,7 +433,7 @@
       const label = pairLabel[key] || key;
       const empty = count === 0;
       html += `<button class="parasha-row${empty ? ' empty' : ''}" data-key="${key}">
-        <span>${itemPrefixOf(key)} ${label}</span><span class="count">${empty ? '—' : count + ' שיעורים'}</span></button>`;
+        <span>${itemLabel(key, label)}</span><span class="count">${empty ? '—' : count + ' שיעורים'}</span></button>`;
     }
     html += '</div>';
     app.innerHTML = html;
@@ -450,7 +454,7 @@
         || (a.part||'').localeCompare(b.part||''));
     const backLabel = chumash === 'מועדים' ? 'חזרה למועדים' : ('חזרה לחומש ' + chumash);
     let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ ${backLabel}</button></div>
-      <h2 class="page-title">${itemPrefixOf(key)} ${label}</h2>
+      <h2 class="page-title">${itemLabel(key, label)}</h2>
       <p class="page-sub">כל השיעורים, מהחדש לישן</p>`;
     if (!shiurim.length){
       html += `<div class="no-content">אין עדיין שיעורים ל${itemNounOf(key)}</div>`;
@@ -553,13 +557,13 @@
           for (const y of years){
             if (shown >= 8) break;
             shown++;
-            html += `<button data-key="${key}" data-year="${y}"><span>${itemPrefixOf(key)} ${label}</span><span class="yr">${yearDisplay(y)}</span></button>`;
+            html += `<button data-key="${key}" data-year="${y}"><span>${itemLabel(key, label)}</span><span class="yr">${yearDisplay(y)}</span></button>`;
           }
         } else {
           if (shown >= 8) break;
           shown++;
           const n = index[key].length;
-          html += `<button data-key="${key}"><span>${itemPrefixOf(key)} ${label}</span><span class="yr">${n} שיעורים</span></button>`;
+          html += `<button data-key="${key}"><span>${itemLabel(key, label)}</span><span class="yr">${n} שיעורים</span></button>`;
         }
       }
     }
