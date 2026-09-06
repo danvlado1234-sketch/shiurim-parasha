@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>שיעורי פרשת שבוע · מאת הרה"ג רבי יצחק ולדומירסקי שליט"א</title>
-<meta name="description" content="שיעורי פרשת השבוע מפי הרה&quot;ג רבי יצחק ולדומירסקי שליט&quot;א — האזנה חינם לפי חומש ופרשה, מכל השנים.">
+<title>שיעורי פרשת שבוע ומועדים · מאת הרה"ג רבי יצחק ולדומירסקי שליט"א</title>
+<meta name="description" content="שיעורי פרשת השבוע ומועדי ישראל מפי הרה&quot;ג רבי יצחק ולדומירסקי שליט&quot;א — האזנה חינם לפי חומש, פרשה ומועד, מכל השנים.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;600;700&display=swap" rel="stylesheet">
@@ -190,7 +190,7 @@
 <body>
 <div class="wrap">
   <header class="hero">
-    <h1 id="siteTitle">שיעורי פרשת שבוע</h1>
+    <h1 id="siteTitle">שיעורי פרשת שבוע ומועדים</h1>
     <p class="byline">מאת הרה"ג רבי יצחק ולדומירסקי שליט"א</p>
     <div class="ornament" aria-hidden="true">
       <svg viewBox="0 0 220 20" width="180" height="18">
@@ -209,7 +209,7 @@
   </div>
   <div class="search-row">
     <svg class="search-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-    <input type="text" class="search-input" id="searchInput" placeholder="חיפוש פרשה — אפשר גם עם שנה: נח תשפה" autocomplete="off">
+    <input type="text" class="search-input" id="searchInput" placeholder="חיפוש פרשה או מועד — אפשר גם עם שנה: נח תשפה" autocomplete="off">
     <div class="suggest" id="suggest" hidden></div>
   </div>
   <div id="app"></div>
@@ -229,7 +229,11 @@
     { name:'שמות',   parashot:['שמות','וארא','בא','בשלח','יתרו','משפטים','תרומה','תצוה','כי תשא','ויקהל','פקודי'] },
     { name:'ויקרא',  parashot:['ויקרא','צו','שמיני','תזריע','מצורע','אחרי מות','קדושים','אמור','בהר','בחוקותי'] },
     { name:'במדבר',  parashot:['במדבר','נשא','בהעלותך','שלח','קרח','חוקת','בלק','פינחס','מטות','מסעי'] },
-    { name:'דברים',  parashot:['דברים','ואתחנן','עקב','ראה','שופטים','כי תצא','כי תבוא','נצבים','וילך','האזינו','וזאת הברכה'] }
+    { name:'דברים',  parashot:['דברים','ואתחנן','עקב','ראה','שופטים','כי תצא','כי תבוא','נצבים','וילך','האזינו','וזאת הברכה'] },
+    // "מועדים" אינו חומש אמיתי - קבוצה מלאכותית לחגים ומועדי ישראל, באותו
+    // מנגנון בדיוק (תיקייה משלה, קובץ מתחיל ב"מועד_" במקום "פרשת_"). הסדר
+    // הוא סדר לוח השנה העברי, מתחילת תשרי.
+    { name:'מועדים', parashot:['ראש השנה','יום כיפור','סוכות','שמחת תורה','חנוכה','עשרה בטבת','טו בשבט','תענית אסתר','פורים','פסח','לג בעומר','שבועות','שבעה עשר בתמוז','תשעה באב'] }
   ];
   // ששת הזוגות הקבועים - תמיד כפתור/דף אחד משותף
   const PAIRS = [
@@ -249,6 +253,12 @@
   CHUMASHIM.forEach(c => c.parashot.forEach(n => validNames[n] = true));
   Object.keys(pairLabel).forEach(k => validNames[k] = true);
 
+  // מועד או פרשה? קובע את המילה שמוצגת לפני השם בכל מקום באתר
+  const moadimNames = {};
+  (CHUMASHIM.find(c => c.name === 'מועדים') || { parashot:[] }).parashot.forEach(n => moadimNames[n] = true);
+  function itemPrefixOf(key){ return moadimNames[key] ? 'מועד' : 'פרשת'; }
+  function itemNounOf(key){ return moadimNames[key] ? 'מועד זה' : 'פרשה זו'; }
+
   // ====== גימטריה לשנים (תשפו -> 786, לצורך מיון) ======
   const GEM = {'א':1,'ב':2,'ג':3,'ד':4,'ה':5,'ו':6,'ז':7,'ח':8,'ט':9,'י':10,'כ':20,'ל':30,'מ':40,'נ':50,'ס':60,'ע':70,'פ':80,'צ':90,'ק':100,'ר':200,'ש':300,'ת':400,'ך':20,'ם':40,'ן':50,'ף':80,'ץ':90};
   function yearValue(y){ let s=0; for (const ch of y){ if (!GEM[ch]) return 0; s += GEM[ch]; } return s; }
@@ -263,7 +273,7 @@
     const filename = path.split('/').pop();
     const base = filename.replace(/\.(mp3|m4a)$/i, '');
     let tokens = base.split('_').filter(Boolean);
-    if (tokens[0] === 'פרשת') tokens = tokens.slice(1);
+    if (tokens[0] === 'פרשת' || tokens[0] === 'מועד') tokens = tokens.slice(1);
     let part = null, lesson = null;
     const iLesson = tokens.indexOf('שיעור');
     const iPart = tokens.indexOf('חלק');
@@ -395,8 +405,9 @@
       let count = 0;
       for (const key of pageKeysOf(c)) count += (index[key] || []).length;
       const empty = count === 0;
+      const volumeLabel = c.name === 'מועדים' ? c.name : ('חומש ' + c.name);
       html += `<button class="volume${empty ? ' empty' : ''}" data-chumash="${c.name}">
-        חומש ${c.name}<span class="count">${empty ? 'אין עדיין שיעורים' : count + ' שיעורים'}</span></button>`;
+        ${volumeLabel}<span class="count">${empty ? 'אין עדיין שיעורים' : count + ' שיעורים'}</span></button>`;
     }
     html += '</div>';
     if (setupMode) html = `<div class="note" style="margin-bottom:22px">האתר עדיין בהקמה — השיעורים יעלו בקרוב בעז"ה.</div>` + html;
@@ -409,15 +420,16 @@
   function renderChumash(name){
     headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
     const c = CHUMASHIM.find(x => x.name === name);
-    let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ חזרה לחומשים</button></div>
-      <h2 class="page-title">חומש ${name}</h2>
-      <p class="page-sub">בחרו פרשה</p><div class="parasha-list">`;
+    const isMoadim = name === 'מועדים';
+    let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ חזרה לתפריט הראשי</button></div>
+      <h2 class="page-title">${isMoadim ? name : ('חומש ' + name)}</h2>
+      <p class="page-sub">${isMoadim ? 'בחרו מועד' : 'בחרו פרשה'}</p><div class="parasha-list">`;
     for (const key of pageKeysOf(c)){
       const count = (index[key] || []).length;
       const label = pairLabel[key] || key;
       const empty = count === 0;
       html += `<button class="parasha-row${empty ? ' empty' : ''}" data-key="${key}">
-        <span>פרשת ${label}</span><span class="count">${empty ? '—' : count + ' שיעורים'}</span></button>`;
+        <span>${itemPrefixOf(key)} ${label}</span><span class="count">${empty ? '—' : count + ' שיעורים'}</span></button>`;
     }
     html += '</div>';
     app.innerHTML = html;
@@ -436,11 +448,12 @@
       .sort((a,b) => yearValue(b.year) - yearValue(a.year)
         || (a.lesson||'').localeCompare(b.lesson||'')
         || (a.part||'').localeCompare(b.part||''));
-    let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ חזרה לחומש ${chumash}</button></div>
-      <h2 class="page-title">פרשת ${label}</h2>
+    const backLabel = chumash === 'מועדים' ? 'חזרה למועדים' : ('חזרה לחומש ' + chumash);
+    let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ ${backLabel}</button></div>
+      <h2 class="page-title">${itemPrefixOf(key)} ${label}</h2>
       <p class="page-sub">כל השיעורים, מהחדש לישן</p>`;
     if (!shiurim.length){
-      html += `<div class="no-content">אין עדיין שיעורים לפרשה זו</div>`;
+      html += `<div class="no-content">אין עדיין שיעורים ל${itemNounOf(key)}</div>`;
     }
     let marked = false;
     for (const s of shiurim){
@@ -508,7 +521,7 @@
   // פירוש הקלט: קודם מנסים הכל כשם פרשה; אם אין התאמות והטוקן האחרון נראה כשנה - שם + שנה
   function interpretQuery(raw){
     let tokens = raw.trim().split(/\s+/).filter(Boolean);
-    if (tokens[0] === 'פרשת') tokens = tokens.slice(1);
+    if (tokens[0] === 'פרשת' || tokens[0] === 'מועד') tokens = tokens.slice(1);
     if (!tokens.length) return null;
     const asName = tokens.join(' ');
     const keysWithContent = Object.keys(index).filter(k => index[k].length);
@@ -540,17 +553,17 @@
           for (const y of years){
             if (shown >= 8) break;
             shown++;
-            html += `<button data-key="${key}" data-year="${y}"><span>פרשת ${label}</span><span class="yr">${yearDisplay(y)}</span></button>`;
+            html += `<button data-key="${key}" data-year="${y}"><span>${itemPrefixOf(key)} ${label}</span><span class="yr">${yearDisplay(y)}</span></button>`;
           }
         } else {
           if (shown >= 8) break;
           shown++;
           const n = index[key].length;
-          html += `<button data-key="${key}"><span>פרשת ${label}</span><span class="yr">${n} שיעורים</span></button>`;
+          html += `<button data-key="${key}"><span>${itemPrefixOf(key)} ${label}</span><span class="yr">${n} שיעורים</span></button>`;
         }
       }
     }
-    if (!shown) html = `<div class="none">לא נמצאה פרשה מתאימה</div>`;
+    if (!shown) html = `<div class="none">לא נמצאה התאמה</div>`;
     suggestBox.innerHTML = html;
     suggestBox.hidden = false;
     // mousedown ולא click - כדי להקדים את סגירת התפריט ב-blur

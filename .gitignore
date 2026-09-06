@@ -1,0 +1,18 @@
+# קבצי שמע וסיכומי PDF לעולם לא עולים לגיטהאב - הם חיים בענן בלבד
+*.m4a
+*.mp3
+*.pdf
+
+# כלי ההעלאה נשאר מקומי
+rclone.exe
+
+# רשימת תפוצה - כתובות מייל פרטיות, לעולם לא בריפו ציבורי
+mailing-list.txt
+mailing-list-reserve.txt
+
+# קבצי זבל של Windows
+Thumbs.db
+desktop.ini
+
+# דף סטטוס חי - נכתב מחדש בכל הרצה, לא תוכן אמיתי
+upload-status.html
