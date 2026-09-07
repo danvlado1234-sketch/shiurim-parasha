@@ -478,6 +478,9 @@ function Get-ParashaKey([string]$relativePath) {
     $base = $filename -replace '\.(mp3|m4a)$', ''
     $tokens = @($base -split '_' | Where-Object { $_ })
     if ($tokens.Count -gt 0 -and ($tokens[0] -eq 'פרשת' -or $tokens[0] -eq 'מועד')) { $tokens = $tokens[1..($tokens.Count - 1)] }
+    # דגל "עיון" (עיוני/הלכתי, בלי ערך אחריו) - תמיד בסוף השם. חייב להיות
+    # מוסר לפני חיתוך שיעור/חלק, אחרת הוא נחשב בטעות לשנה. זהה ל-index.html.
+    if ($tokens.Count -gt 0 -and $tokens[$tokens.Count - 1] -eq 'עיון') { $tokens = $tokens[0..($tokens.Count - 2)] }
     # חותכים בתגית המוקדמת מבין "שיעור" (שיעור נפרד) ו"חלק" (המשך אותו שיעור),
     # כדי שיישארו רק שם הפרשה והשנה. חייב להיות זהה ללוגיקה ב-index.html.
     $marks = @()
