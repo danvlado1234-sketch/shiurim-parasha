@@ -180,9 +180,36 @@ $needSummary = @($audioFiles | Where-Object {
 if ($needSummary.Count -gt 0) {
     Write-Host "[1/5] יוצר סיכום AI ($($needSummary.Count) שיעורים ללא סיכום)..." -ForegroundColor Yellow
     Write-Status "[1/5] יוצר סיכום AI ל-$($needSummary.Count) שיעורים..."
-    $nlmConfigPath = "$env:APPDATA\shiurim-ai\notebooklm-config.json"
-    $geminiConfigPath = "$env:APPDATA\shiurim-ai\gemini-config.json"
-    if ((Test-Path $nlmConfigPath) -and (Test-Path $geminiConfigPath)) {
+    # $env:APPDATA ו-[Environment]::GetFolderPath('ApplicationData') שניהם
+    # נכשלו בפועל (ספטמבר 2026) כשמריצים דרך לחיצה כפולה על ה-bat, למרות
+    # שהקבצים תמיד נמצאים שם באמת כשבודקים ידנית - כנראה שני האמצעים קוראים
+    # מאותו מקור (רישום/סביבה) שמיושן בתהליכים שנפתחים מ-Explorer. לכן לא
+    # מנחשים איך לחשב את הנתיב הנכון - בודקים כמה נתיבים מועמדים ידועים
+    # (כולל הנתיב המוחלט בפועל של המשתמש הזה) ולוקחים את הראשון שבאמת קיים.
+    $candidateAppDataRoots = @(
+        "$env:APPDATA",
+        [Environment]::GetFolderPath('ApplicationData'),
+        "$env:USERPROFILE\AppData\Roaming",
+        'C:\Users\1\AppData\Roaming'
+    ) | Where-Object { $_ } | Select-Object -Unique
+    $nlmConfigPath = $null
+    $geminiConfigPath = $null
+    $configReady = $false
+    for ($cfgAttempt = 1; $cfgAttempt -le 5 -and -not $configReady; $cfgAttempt++) {
+        foreach ($candidateRoot in $candidateAppDataRoots) {
+            $tryNlm = Join-Path $candidateRoot 'shiurim-ai\notebooklm-config.json'
+            $tryGemini = Join-Path $candidateRoot 'shiurim-ai\gemini-config.json'
+            if ((Test-Path $tryNlm) -and (Test-Path $tryGemini)) {
+                $nlmConfigPath = $tryNlm; $geminiConfigPath = $tryGemini; $configReady = $true
+                break
+            }
+        }
+        if (-not $configReady -and $cfgAttempt -lt 5) { Start-Sleep -Seconds 2 }
+    }
+    if (-not $configReady) {
+        Write-Host "         (קובצי ה-config לא נמצאו באף אחד מהנתיבים המועמדים: $($candidateAppDataRoots -join ' | '))" -ForegroundColor DarkGray
+    }
+    if ($configReady) {
         $nlmCfg = Get-Content $nlmConfigPath -Raw | ConvertFrom-Json
         $nlmExe = $nlmCfg.NotebookLmExe
         if (-not $nlmExe -or -not (Test-Path $nlmExe)) { $nlmExe = "notebooklm" }
@@ -513,7 +540,7 @@ $attachPaths = @($newPaths | ForEach-Object { Join-Path $root $_ } | Where-Objec
 $attachTotalBytes = ($attachPaths | ForEach-Object { (Get-Item $_).Length } | Measure-Object -Sum).Sum
 $canAttach = ($attachPaths.Count -gt 0) -and ($attachTotalBytes -le $maxAttachBytes)
 
-$mailConfigPath = "$env:APPDATA\shiurim-mail\mail-config.json"
+$mailConfigPath = Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'shiurim-mail\mail-config.json'
 $mailingListPath = Join-Path $root 'mailing-list.txt'
 
 if ($newKeys.Count -eq 0) {
