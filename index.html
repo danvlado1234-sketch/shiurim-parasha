@@ -269,9 +269,13 @@
   function yearDisplay(y){ return y.length > 1 ? y.slice(0,-1) + '"' + y.slice(-1) : y; }
 
   // ====== פענוח שם קובץ ======
-  // פרשת_<שם>_<שנה>[_שיעור_<אות>][_חלק_<אות>][_עיון].mp3/m4a
+  // פרשת_<שם>_<שנה>[_שיעור_<אות>][_חלק_<אות>][_שבת_<מילה>][_עיון].mp3/m4a
   //   "שיעור ב" = שיעור נפרד ועצמאי שני על אותה פרשה באותה שנה
   //   "חלק ב"   = המשך של אותו שיעור עצמו (הקלטה שנחתכה לשניים)
+  //   "שבת <מילה>" = שבת מיוחדת (הגדול/שובה/זכור/פרה/החודש/חזון/נחמו וכו') -
+  //               לשיעור ששייך תוכנית-אירועים למועד אחר (למשל שיעור על
+  //               שבת הגדול משוייך לתיקיית ולשם הקובץ של פסח, לא מועד נפרד).
+  //               תמיד לפני "עיון" אם שניהם קיימים.
   //   "עיון"    = דגל בלבד (בלי ערך אחריו), תמיד בסוף השם. סימון תוכן
   //               הלכתי/עיוני להבדיל מוורט (ברירת המחדל, בלי הדגל).
   // כולם אופציונליים ויכולים להופיע יחד.
@@ -282,6 +286,11 @@
     if (tokens[0] === 'פרשת' || tokens[0] === 'מועד') tokens = tokens.slice(1);
     let isIyun = false;
     if (tokens[tokens.length - 1] === 'עיון'){ isIyun = true; tokens = tokens.slice(0, -1); }
+    let shabbatName = null;
+    if (tokens.length >= 2 && tokens[tokens.length - 2] === 'שבת'){
+      shabbatName = 'שבת ' + tokens[tokens.length - 1];
+      tokens = tokens.slice(0, -2);
+    }
     let part = null, lesson = null;
     const iLesson = tokens.indexOf('שיעור');
     const iPart = tokens.indexOf('חלק');
@@ -303,7 +312,7 @@
     if (!validNames[name] || !yearValue(year)) return null;
     // דף הבית של השיעור: הפרשה עצמה, או דף הזוג אם היא חלק מזוג
     const pageKey = pairLabel[name] ? name : (pairKeyOf[name] || name);
-    return { path, filename, name, year, part, lesson, pageKey, isIyun };
+    return { path, filename, name, year, part, lesson, pageKey, isIyun, shabbatName };
   }
 
   // ====== מצב ======
@@ -465,7 +474,7 @@
     }
     let marked = false;
     for (const s of shiurim){
-      const title = `${s.name === key ? '' : s.name + ' · '}${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}${s.isIyun ? ' · עיון' : ''}`;
+      const title = `${s.name === key ? '' : s.name + ' · '}${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}${s.shabbatName ? ' · ' + s.shabbatName : ''}${s.isIyun ? ' · עיון' : ''}`;
       const type = /\.m4a$/i.test(s.filename) ? 'audio/mp4' : 'audio/mpeg';
       const url = R2_BASE.replace(/\/$/,'') + '/' + s.path.split('/').map(encodeURIComponent).join('/');
       const hl = view.year && s.year === view.year;
