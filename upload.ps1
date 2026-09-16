@@ -177,6 +177,15 @@ foreach ($m in $chumashim) {
 $files = $files | Sort-Object
 $json = ConvertTo-Json @($files) -Depth 1
 [System.IO.File]::WriteAllText($listJsonPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+
+# גרסה לכל PDF (תחילת MD5 של התוכן) - האתר מוסיף אותה לקישור (?v=), כדי
+# שסיכום שהוחלף ייפתח מחדש ולא מהמטמון של הדפדפן/הטלפון בכתובת הישנה.
+$pdfVersions = [ordered]@{}
+foreach ($f in ($files | Where-Object { $_ -match '\.pdf$' })) {
+    $pdfVersions[$f] = (Get-FileHash -Algorithm MD5 -Path (Join-Path $root $f)).Hash.Substring(0, 8).ToLower()
+}
+$versionsJson = if ($pdfVersions.Count) { $pdfVersions | ConvertTo-Json -Depth 2 } else { '{}' }
+[System.IO.File]::WriteAllText((Join-Path $root 'pdf-versions.json'), $versionsJson, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host ("      list.json נוצר עם " + $files.Count + " קבצים.") -ForegroundColor Green
 Write-Status "רשימת השיעורים עודכנה." -Kind done
 Write-Host ""
@@ -184,8 +193,8 @@ Write-Host ""
 # ---- שלב 3: דחיפה ל-GitHub ----
 Write-Host "[3/4] דוחף ל-GitHub..." -ForegroundColor Yellow
 Write-Status "[3/4] מפרסם את העדכון באתר..."
-git add list.json index.html 2>$null
-$changes = git status --porcelain list.json index.html
+git add list.json pdf-versions.json index.html 2>$null
+$changes = git status --porcelain list.json pdf-versions.json index.html
 if ($changes) {
     $stamp = Get-Date -Format "yyyy-MM-dd HH:mm"
     git commit -m "עדכון שיעורים $stamp" | Out-Null
