@@ -208,6 +208,15 @@ if ($needSummary.Count -gt 0) {
     }
     if (-not $configReady) {
         Write-Host "         (קובצי ה-config לא נמצאו באף אחד מהנתיבים המועמדים: $($candidateAppDataRoots -join ' | '))" -ForegroundColor DarkGray
+        # מודפס גם לדף הסטטוס (לא רק לקונסולה שנסגרת בלחיצה כפולה על ה-bat) -
+        # כדי שבפעם הבאה שזה נכשל אפשר יהיה לראות בדיוק אילו נתיבים נבדקו
+        # ומה $env:APPDATA/USERPROFILE היו בפועל באותה הרצה, במקום לנחש.
+        $diag = ($candidateAppDataRoots | ForEach-Object {
+            $n = Test-Path (Join-Path $_ 'shiurim-ai\notebooklm-config.json')
+            $g = Test-Path (Join-Path $_ 'shiurim-ai\gemini-config.json')
+            "$_ (nlm=$n, gemini=$g)"
+        }) -join ' | '
+        Write-Status "קובצי config של NotebookLM/Gemini לא נמצאו. נבדק: $diag" -Kind error
     }
     if ($configReady) {
         $nlmCfg = Get-Content $nlmConfigPath -Raw | ConvertFrom-Json
