@@ -319,6 +319,7 @@
   let index = {};      // pageKey -> [shiur,...]
   let unmatched = [];
   let pdfPaths = new Set();   // נתיבי סיכומי PDF שקיימים (אותו נתיב כמו השמע, סיומת שונה)
+  let pdfVersions = {};       // נתיב PDF -> גרסה (pdf-versions.json), נוסף לקישור נגד מטמון
   let view = { type:'shelf' };
   let setupMode = false;
   const app = document.getElementById('app');
@@ -483,7 +484,8 @@
       const shareUrl = directLink(key, s.year);
       const pdfPath = s.path.replace(/\.(m4a|mp3)$/i, '.pdf');
       const hasSummary = pdfPaths.has(pdfPath);
-      const pdfUrl = R2_BASE.replace(/\/$/,'') + '/' + pdfPath.split('/').map(encodeURIComponent).join('/');
+      const pdfVer = pdfVersions[pdfPath];
+      const pdfUrl = R2_BASE.replace(/\/$/,'') + '/' + pdfPath.split('/').map(encodeURIComponent).join('/') + (pdfVer ? '?v=' + encodeURIComponent(pdfVer) : '');
       html += `<div class="shiur-row${hl ? ' hl' : ''}"${id}>
         <div class="shiur-head">
           <span class="shiur-title">${title}</span>
@@ -622,13 +624,17 @@
       view = { type:'shelf' }; render();
       return Promise.resolve(true);
     }
-    return fetch('list.json?t=' + Date.now())
+    const versionsReq = fetch('pdf-versions.json?t=' + Date.now())
+      .then(r => r.ok ? r.json() : {})
+      .catch(() => ({}));
+    return Promise.all([fetch('list.json?t=' + Date.now())
       .then(r => {
         if (r.status === 404) return [];   // הרשימה טרם נוצרה - מצב הקמה
         if (!r.ok) throw new Error('http ' + r.status);
         return r.json();
-      })
-      .then(files => {
+      }), versionsReq])
+      .then(([files, versions]) => {
+        pdfVersions = versions || {};
         if (!files.length) setupMode = true;
         index = {}; unmatched = []; pdfPaths = new Set();
         for (const path of files){
