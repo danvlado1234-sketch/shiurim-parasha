@@ -237,13 +237,34 @@ if ($needSummary.Count -gt 0) {
             $loginOut = $_.Exception.Message
         }
         if (-not $loginOk) {
-            Write-Host "      !! רענון התחברות NotebookLM נכשל - ייתכן שהסיכומים ידולגו." -ForegroundColor Red
-            # מדפיסים את הפלט בפועל: בלי זה כשל התחברות נראה זהה לכל כשל אחר,
-            # ואי אפשר לדעת אם צריך login ידני או שמדובר במשהו אחר לגמרי.
+            # הרענון השקט לא הספיק - כנראה שההתחברות המקומית פגה לגמרי.
+            # ה-bat רץ במסך גלוי ותחת השגחת המשתמש (לא Task Scheduler),
+            # אז יש טעם לבקש התחברות אמיתית עכשיו: מסירים את
+            # NOTEBOOKLM_HEADLESS_REAUTH ומריצים login שוב - הפעם זה
+            # אמור לפתוח דפדפן בפועל לבקשת התחברות, ולחכות שהמשתמש יתחבר.
+            Write-Host "      !! רענון שקט של התחברות NotebookLM נכשל - נפתח דפדפן להתחברות ידנית..." -ForegroundColor Yellow
             if ($loginOut) {
                 Write-Host "         $($loginOut -join ' ')" -ForegroundColor DarkGray
             }
-            Write-Status "רענון התחברות NotebookLM נכשל." -Kind error
+            Write-Status "רענון שקט נכשל - ממתין להתחברות ידנית ל-NotebookLM בדפדפן..."
+            Remove-Item Env:\NOTEBOOKLM_HEADLESS_REAUTH -ErrorAction SilentlyContinue
+            $loginOut2 = $null
+            try {
+                $loginOut2 = & $nlmExe login
+                $loginOk = ($LASTEXITCODE -eq 0)
+            } catch {
+                $loginOut2 = $_.Exception.Message
+            }
+            $env:NOTEBOOKLM_HEADLESS_REAUTH = "1"
+            if (-not $loginOk) {
+                Write-Host "      !! התחברות NotebookLM נכשלה גם ידנית - ייתכן שהסיכומים ידולגו." -ForegroundColor Red
+                if ($loginOut2) {
+                    Write-Host "         $($loginOut2 -join ' ')" -ForegroundColor DarkGray
+                }
+                Write-Status "התחברות NotebookLM נכשלה." -Kind error
+            } else {
+                Write-Status "התחברות NotebookLM הצליחה." -Kind done
+            }
         }
 
         $geminiCfg = Get-Content $geminiConfigPath -Raw | ConvertFrom-Json
