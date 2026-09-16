@@ -211,12 +211,19 @@ if ($needSummary.Count -gt 0) {
         # מודפס גם לדף הסטטוס (לא רק לקונסולה שנסגרת בלחיצה כפולה על ה-bat) -
         # כדי שבפעם הבאה שזה נכשל אפשר יהיה לראות בדיוק אילו נתיבים נבדקו
         # ומה $env:APPDATA/USERPROFILE היו בפועל באותה הרצה, במקום לנחש.
-        $diag = ($candidateAppDataRoots | ForEach-Object {
+        # נצפה בפועל (16.9.2026) מקרה שבו כל הנתיבים המועמדים - כולל הנתיב
+        # הקשיח - התכנסו לאותו מחרוזת אחת, וגם היא נכשלה ב-Test-Path, למרות
+        # שהקבצים אומתו ידנית כקיימים שם באותו זמן בדיוק. לכן מוסיפים כאן גם
+        # את משתני הסביבה הגולמיים (לפני האיחוד) ובדיקה ברמת התיקייה עצמה
+        # (shiurim-ai, לא רק הקבצים) כדי לצמצם את החשודים בפעם הבאה.
+        $dirChecks = ($candidateAppDataRoots | ForEach-Object {
+            $d = Test-Path (Join-Path $_ 'shiurim-ai')
             $n = Test-Path (Join-Path $_ 'shiurim-ai\notebooklm-config.json')
             $g = Test-Path (Join-Path $_ 'shiurim-ai\gemini-config.json')
-            "$_ (nlm=$n, gemini=$g)"
+            "$_ (dir=$d, nlm=$n, gemini=$g)"
         }) -join ' | '
-        Write-Status "קובצי config של NotebookLM/Gemini לא נמצאו. נבדק: $diag" -Kind error
+        $diag = "USERNAME=$env:USERNAME | raw APPDATA=$env:APPDATA | raw USERPROFILE=$env:USERPROFILE | נבדק: $dirChecks"
+        Write-Status "קובצי config של NotebookLM/Gemini לא נמצאו. $diag" -Kind error
     }
     if ($configReady) {
         $nlmCfg = Get-Content $nlmConfigPath -Raw | ConvertFrom-Json
