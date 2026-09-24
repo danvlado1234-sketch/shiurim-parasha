@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>שיעורי פרשת שבוע ומועדים · מאת הרה"ג רבי יצחק ולדומירסקי שליט"א</title>
 <meta name="description" content="שיעורי פרשת השבוע ומועדי ישראל מפי הרה&quot;ג רבי יצחק ולדומירסקי שליט&quot;א — האזנה חינם לפי חומש, פרשה ומועד, מכל השנים.">
 <!-- תצוגה מקדימה כשמשתפים קישור (וואטסאפ, טלגרם, פייסבוק) - הכתובות חייבות להיות מלאות -->
@@ -16,321 +16,377 @@
 <meta property="og:image:width" content="2000">
 <meta property="og:image:height" content="1500">
 <meta name="twitter:card" content="summary_large_image">
+<!-- אפליקציה: התקנה למסך הבית (manifest + sw.js), אייקון, צבע שורת המצב -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1f4a33">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="שיעורי פרשה">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --paper:#f5efdf; --ink:#26211a; --accent:#1f4a33; /* ירוק עמוק - הצבע המבחין של אתר הפרשות */
-    --accent-soft:#2c5c42; --brass:#a1782f; --line:#d8cbaa; --muted:#7a7061;
-    --shadow-sm: 0 1px 3px rgba(38,33,26,0.08);
-    --shadow-md: 0 6px 16px rgba(38,33,26,0.14);
-    --shadow-accent: 0 8px 18px rgba(31,74,51,0.24);
+    --paper:#f6f1e4; --card:#fffdf7; --ink:#231e17; --muted:#857a68; --line:#e6dcc3;
+    --accent:#1f4a33; /* ירוק עמוק - הצבע המבחין של אתר הפרשות */
+    --accent-soft:#2c5c42; --accent-dark:#173826; --brass:#a1782f; --gold:#d9b876; --cream:#f6ecd3;
+    --done:#2e7d4f;
+    --shadow-sm: 0 2px 8px rgba(35,30,23,.06);
+    --shadow-md: 0 8px 22px rgba(35,30,23,.12);
+    --tabs-h: 64px;     /* גובה סרגל הלשוניות בטלפון */
+    --mini-h: 0px;      /* גובה הנגן הקטן כשהוא פתוח (נקבע ע"י body.has-player) */
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-t: env(safe-area-inset-top, 0px);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  html { background:var(--paper); }
   body {
     font-family:'Heebo',sans-serif; background:var(--paper); color:var(--ink);
-    min-height:100vh;
+    min-height:100vh; -webkit-tap-highlight-color:transparent;
+    padding-bottom:calc(var(--tabs-h) + var(--mini-h) + var(--safe-b) + 24px);
   }
-  /* תמונת הרקע בשכבה קבועה נפרדת. בטלפון שורת הכתובת נעלמת/חוזרת בגלילה
-     וגובה המסך משתנה; אם גובה השכבה תלוי בזה, הדפדפן מחשב מחדש את גודל
-     התמונה בכל שינוי והיא קופצת ונמתחת לרגע. לכן הגובה נקבע פעם אחת
-     (--bg-h, מהסקריפט בתחילת body) לפי הצלע הארוכה של המסך הפיזי - מספר
-     שלא משתנה בגלילה, בפתיחת הנגן או בסיבוב. translateZ מעביר את השכבה
-     לשכבה גרפית משלה, כדי שלא תצויר מחדש בכל גלילה. */
-  body::before {
-    content:''; position:fixed; top:0; left:0; right:0; z-index:-1;
-    height:100vh; height:100lvh; height:var(--bg-h, 100lvh);
-    transform:translateZ(0); will-change:transform; backface-visibility:hidden;
-    background-image:
-      linear-gradient(0deg, rgba(31,74,51,.05) 1px, transparent 1px),
-      linear-gradient(180deg, rgba(18,13,9,0.55) 0%, rgba(24,17,12,0.4) 45%, rgba(245,239,223,0.95) 100%),
-      url('bg-rabbi.jpg');
-    background-size:100% 46px, cover, cover;
-    background-position: top, 42% 32%, 42% 32%;
-    background-repeat: repeat, no-repeat, no-repeat;
-    pointer-events:none;
+  body.has-player { --mini-h: 68px; }
+  button { font-family:inherit; color:inherit; }
+  .wrap { max-width:760px; margin:0 auto; }
+  #app { padding-top:var(--safe-t); }
+  #app.fade-in { animation: fadeIn .22s ease both; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce) { #app.fade-in, .sheet, .toast { animation:none !important; transition:none !important; } }
+  :focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
+
+  /* ====== דף הבית: כותרת עם התמונה ====== */
+  .hero {
+    position:relative; height:calc(250px + var(--safe-t)); margin-top:calc(-1 * var(--safe-t));
+    border-radius:0 0 26px 26px; overflow:hidden;
+    background:url('bg-rabbi.jpg') 42% 30% / cover #2b3a30;
   }
-  .wrap { max-width:760px; margin:0 auto; padding:28px 18px 80px; }
+  .hero::after { content:''; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(15,28,20,.35), rgba(15,28,20,.5) 50%, rgba(20,40,28,.93)); }
+  .hero-in { position:absolute; inset:0; z-index:1; padding:0 20px 20px; display:flex; flex-direction:column; justify-content:flex-end; color:var(--cream); }
+  .hero h1 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(28px,8vw,36px); line-height:1.12; }
+  .hero .by { font-size:14px; opacity:.88; margin-top:6px; }
+  .hero .count { font-size:12.5px; opacity:.7; margin-top:3px; }
 
-  header.hero { text-align:center; padding:24px 20px 16px; margin-bottom:16px; }
-  header.hero h1 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(30px,7vw,44px); color:#f6ecd3; text-shadow:0 2px 12px rgba(20,14,8,0.45); }
-  header.hero .byline { font-family:'Frank Ruhl Libre',serif; font-size:clamp(16px,4vw,20px); margin-top:6px; color:#f0e6c8; text-shadow:0 1px 8px rgba(20,14,8,0.4); }
-  .ornament { display:flex; justify-content:center; color:#d9b876; opacity:.9; margin:10px 0 4px; }
-  header.hero .meta { margin-top:10px; font-size:14px; color:#e7dcc0; }
-
-  .shelf { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:14px; }
-  .volume {
-    font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px;
-    padding:22px 10px 16px; text-align:center; cursor:pointer;
-    background:linear-gradient(180deg,#fbf7ea, #f1e9d2);
-    border:1px solid var(--line); border-top:6px solid var(--accent);
-    border-radius:4px; color:var(--ink);
-    box-shadow:0 2px 0 rgba(38,33,26,.12), var(--shadow-sm);
-    transition:transform .18s cubic-bezier(.22,.8,.25,1), box-shadow .18s ease, border-top-color .18s ease;
-    animation: volumeIn .32s cubic-bezier(.22,.8,.25,1) both;
-  }
-  .volume .count { display:block; font-family:'Heebo',sans-serif; font-weight:400; font-size:12.5px; color:var(--muted); margin-top:6px; }
-  .volume:hover { border-top-color:var(--brass); transform:translateY(-4px) scale(1.02); box-shadow:0 2px 0 rgba(38,33,26,.12), var(--shadow-accent); }
-  .volume.empty { border-top-color:var(--line); }
-  .volume.empty:hover { border-top-color:var(--muted); box-shadow:0 2px 0 rgba(38,33,26,.12), var(--shadow-sm); }
-  .volume:focus-visible { outline:3px solid var(--brass); outline-offset:2px; }
-
-  @keyframes volumeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes rowIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes fadeSlideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-  #app.fade-in { animation: fadeSlideIn .28s ease both; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .volume, .parasha-row, .shiur-row, #app.fade-in { animation:none !important; transition:none !important; }
+  .search-fake {
+    display:flex; align-items:center; gap:9px; width:calc(100% - 32px); margin:14px 16px 0;
+    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 15px;
+    font-size:15px; color:var(--muted); text-align:right; cursor:pointer; box-shadow:var(--shadow-sm);
   }
 
-  .breadcrumb { margin-bottom:18px; display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
-  .breadcrumb button {
-    font-family:'Heebo',sans-serif; font-size:14.5px; cursor:pointer;
-    background:#fbf7ea; border:1px solid var(--line); border-radius:20px;
-    padding:8px 16px; color:var(--accent);
-    box-shadow:var(--shadow-sm);
-    transition:border-color .15s ease, box-shadow .15s ease;
-  }
-  .breadcrumb button:hover { border-color:var(--accent); box-shadow:var(--shadow-md); }
-  .breadcrumb button:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
-  .breadcrumb .home-link { display:inline-flex; align-items:center; gap:4px; color:var(--ink); }
-  .breadcrumb .home-link:hover { color:var(--accent); border-color:var(--accent); }
-  .breadcrumb-sep { color:var(--ink); font-size:12px; }
+  .sec { display:flex; justify-content:space-between; align-items:baseline; margin:22px 16px 10px; }
+  .sec h3 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:20px; }
+  .sec .link { font-size:13.5px; color:var(--accent); font-weight:600; background:none; border:0; cursor:pointer; }
 
-  h2.page-title { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(26px,6vw,34px); color:#f6ecd3; margin-bottom:4px; text-shadow:0 2px 10px rgba(20,14,8,0.5); }
-  .page-sub { color:#e7dcc0; font-size:14.5px; margin-bottom:20px; text-shadow:0 1px 6px rgba(20,14,8,0.4); }
+  /* המשך האזנה */
+  .cont {
+    display:flex; gap:12px; align-items:center; margin:0 16px; padding:13px 14px;
+    background:var(--accent); color:var(--cream); border-radius:16px; box-shadow:var(--shadow-md); cursor:pointer;
+  }
+  .cont-th { width:56px; height:56px; border-radius:12px; flex-shrink:0; background:url('bg-rabbi.jpg') 55% 35% / cover; }
+  .cont-gr { flex:1; min-width:0; }
+  .cont-t { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:17px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cont .shiur-meta { color:rgba(246,236,211,.8); font-size:12.5px; margin-top:2px; }
+  .cont .shiur-bar { height:3px; background:rgba(255,255,255,.2); border-radius:2px; margin-top:8px; overflow:hidden; }
+  .cont .shiur-bar i { background:var(--gold); }
 
-  .parasha-list { display:flex; flex-direction:column; gap:10px; }
-  .parasha-row {
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px;
-    padding:15px 18px; cursor:pointer; text-align:right;
-    background:#fbf7ea; border:1px solid var(--line); border-right:6px solid var(--accent);
-    border-radius:4px; color:var(--ink); width:100%;
-    box-shadow:var(--shadow-sm);
-    transition:transform .18s cubic-bezier(.22,.8,.25,1), box-shadow .18s ease, border-right-color .18s ease;
-    animation: volumeIn .32s cubic-bezier(.22,.8,.25,1) both;
+  /* חדש השבוע - שורת כרטיסים לגלילה הצידה */
+  .tiles { display:flex; gap:10px; padding:2px 16px 6px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .tiles::-webkit-scrollbar { display:none; }
+  .tile {
+    flex:0 0 146px; scroll-snap-align:start; position:relative; cursor:pointer;
+    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 12px 12px; box-shadow:var(--shadow-sm);
   }
-  .parasha-row .count { font-family:'Heebo',sans-serif; font-weight:400; font-size:13px; color:var(--muted); flex-shrink:0; }
-  .parasha-row:hover { border-right-color:var(--brass); transform:translateY(-3px); box-shadow:var(--shadow-md); }
-  .parasha-row.empty { border-right-color:var(--line); }
-  .parasha-row.empty:hover { transform:translateY(-2px); box-shadow:var(--shadow-sm); }
-  .parasha-row:focus-visible { outline:3px solid var(--brass); outline-offset:2px; }
+  .tile .tag { display:inline-block; font-size:11px; font-weight:700; color:var(--brass); background:#f5ead2; border-radius:6px; padding:1px 7px; }
+  .tile.is-done .tag { color:var(--done); background:#e3efe6; }
+  .tile-t { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:16.5px; margin-top:7px; line-height:1.2; }
+  .tile-s { font-size:12px; color:var(--muted); margin-top:3px; }
+  .tile .play-btn { width:34px; height:34px; margin-top:10px; }
 
-  .shiur-row {
-    background:#fbf7ea; border:1px solid var(--line); border-right:4px solid var(--brass);
-    border-radius:6px; padding:14px 16px 0; margin-bottom:14px; overflow:hidden;
-    box-shadow:var(--shadow-sm);
-    transition:box-shadow .18s ease, border-right-color .18s ease;
-    animation: rowIn .3s ease both;
+  /* הארכיון - רשת החומשים */
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:0 16px; }
+  .vol {
+    display:flex; flex-direction:column; align-items:center; gap:2px; padding:14px 6px 12px; cursor:pointer;
+    background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-sm);
+    transition:transform .15s ease, box-shadow .15s ease;
   }
-  .shiur-row:hover { box-shadow:var(--shadow-md); border-right-color:var(--accent); }
-  .shiur-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .shiur-title { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px; color:var(--accent); }
-  .shiur-actions { display:inline-flex; align-items:center; gap:6px; flex-shrink:0; }
-  .shiur-actions .text-link {
-    display:inline-flex; align-items:center; gap:4px;
-    font-size:12.5px; color:var(--accent); text-decoration:none;
-    border:1px solid var(--accent); border-radius:20px; padding:3px 10px;
-    transition:background .15s ease, color .15s ease;
+  .vol:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
+  .vol .dot { width:24px; height:3px; border-radius:2px; background:var(--accent); margin-bottom:8px; }
+  .vol-n { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:17px; }
+  .vol-c { font-size:11.5px; color:var(--muted); }
+  .vol.empty .dot { background:var(--line); }
+  .vol.empty .vol-n { color:#b3a992; }
+
+  /* התקנת האפליקציה */
+  .install {
+    display:flex; align-items:center; gap:12px; margin:14px 16px 0; padding:12px 14px;
+    background:#fbf3df; border:1px solid #ecd9ad; border-radius:14px;
   }
-  .shiur-actions .text-link:hover { background:var(--accent); color:var(--paper); }
-  /* כרטיס שיעור: שורת מידע (התקדמות / נשמע), פס התקדמות דק בתחתית, כפתור ניגון */
-  .shiur-sub { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:6px 0 10px; flex-wrap:wrap; }
-  .shiur-meta { font-size:12.5px; color:var(--muted); }
-  .shiur-meta .done { color:#2e7d4f; font-weight:700; }
-  .shiur-bar { height:4px; background:#ece3c9; margin:0 -16px; }
-  .shiur-bar i { display:block; height:100%; width:0; background:var(--accent); transition:width .3s linear; }
-  .shiur-row.is-done .shiur-bar i { background:#9bb8a5; }
-  .shiur-row.playing { border-right-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
-  .play-btn {
-    width:42px; height:42px; border-radius:50%; border:0; cursor:pointer; flex-shrink:0;
+  .install img { width:42px; height:42px; border-radius:10px; flex-shrink:0; }
+  .install-gr { flex:1; min-width:0; }
+  .install-t { font-weight:700; font-size:14.5px; }
+  .install-s { font-size:12.5px; color:var(--muted); margin-top:1px; line-height:1.4; }
+  .install-go { background:var(--accent); color:#fff; border:0; border-radius:18px; padding:7px 14px; font-weight:600; font-size:13.5px; cursor:pointer; flex-shrink:0; }
+  .install-x { background:none; border:0; color:var(--muted); cursor:pointer; padding:4px; flex-shrink:0; display:inline-flex; }
+
+  /* ====== דפים פנימיים ====== */
+  .topbar { display:flex; align-items:center; gap:10px; padding:12px 14px 6px; }
+  .back-btn {
+    width:38px; height:38px; border-radius:50%; flex-shrink:0; cursor:pointer;
     display:inline-flex; align-items:center; justify-content:center;
-    background:var(--accent); color:#fff; box-shadow:var(--shadow-sm);
-    transition:transform .12s ease, background .15s ease;
+    background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow-sm);
   }
-  .play-btn:hover { background:var(--accent-soft); transform:scale(1.06); }
-  .play-btn:focus-visible { outline:3px solid var(--brass); outline-offset:2px; }
-  .save-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; color:var(--muted); padding:4px; border-radius:50%; }
-  .save-btn:hover { color:var(--brass); }
+  .crumb { font-size:13px; color:var(--muted); }
+  .ptitle { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(28px,8vw,34px); padding:4px 16px 0; line-height:1.15; }
+  .psub { font-size:13.5px; color:var(--muted); padding:3px 16px 14px; }
+  .page-top { padding-top:18px; }
+
+  .chips { display:flex; gap:7px; padding:0 16px 14px; overflow-x:auto; scrollbar-width:none; }
+  .chips::-webkit-scrollbar { display:none; }
+  .chip { flex-shrink:0; font-size:13px; padding:6px 13px; border-radius:16px; border:1px solid var(--line); background:var(--card); cursor:pointer; }
+  .chip.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+  .sub-h { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:17px; margin:18px 16px 10px; color:var(--ink); }
+  .list-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:18px 16px 10px; }
+  .list-head .sub-h { margin:0; }
+  .pill-btn {
+    display:inline-flex; align-items:center; gap:6px; cursor:pointer; flex-shrink:0;
+    background:var(--accent); color:#fff; border:0; border-radius:18px; padding:7px 14px; font-weight:600; font-size:13.5px;
+  }
+
+  /* שורות פרשה (בדף חומש ובחיפוש) */
+  .plist { display:flex; flex-direction:column; gap:8px; margin:0 16px; }
+  .prow {
+    display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; cursor:pointer; text-align:right;
+    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow-sm);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .prow:hover { transform:translateY(-1px); box-shadow:var(--shadow-md); }
+  .prow-n { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:18px; }
+  .prow-s { font-size:12px; color:var(--muted); margin-top:1px; }
+  .prow-c { font-size:12.5px; color:var(--muted); flex-shrink:0; display:inline-flex; align-items:center; gap:6px; }
+  .prow.empty { box-shadow:none; background:transparent; }
+  .prow.empty .prow-n { color:#b3a992; }
+
+  /* ====== כרטיס שיעור ====== */
+  .shiur-row {
+    margin:0 16px 10px; background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:13px 14px 0; overflow:hidden; box-shadow:var(--shadow-sm); transition:box-shadow .15s ease, border-color .15s ease;
+  }
+  .shiur-row.playing { border-color:var(--accent); box-shadow:0 0 0 1.5px var(--accent), var(--shadow-sm); }
+  .shiur-row.hl { border-color:var(--brass); box-shadow:0 0 0 2px var(--brass); }
+  .shiur-head { display:flex; align-items:center; gap:12px; }
+  .shiur-gr { flex:1; min-width:0; }
+  .shiur-title { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:18px; line-height:1.25; }
+  .shiur-meta { font-size:12.5px; color:var(--muted); margin-top:2px; min-height:1em; }
+  .shiur-meta .done { color:var(--done); font-weight:700; }
+  .shiur-acts { display:flex; align-items:center; gap:2px; flex-shrink:0; }
+  .shiur-foot { display:flex; gap:8px; margin-top:10px; }
+  .shiur-foot:empty { display:none; }
+  .shiur-bar { height:3px; background:#efe6cf; margin:12px -14px 0; }
+  .shiur-bar i { display:block; height:100%; width:0; background:var(--accent); transition:width .3s linear; }
+  .shiur-row.is-done .shiur-bar i { background:#a9c3b1; }
+  .summary-link {
+    display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--accent); text-decoration:none;
+    border:1px solid var(--line); background:#fbf6ea; border-radius:14px; padding:4px 11px;
+  }
+  .summary-link:hover { border-color:var(--accent); }
+
+  .play-btn {
+    width:46px; height:46px; border-radius:50%; border:0; cursor:pointer; flex-shrink:0;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:var(--accent); color:#fff; transition:transform .12s ease, background .15s ease;
+  }
+  .play-btn:hover { background:var(--accent-soft); transform:scale(1.05); }
+  .shiur-row.is-done:not(.playing) .play-btn { background:#e9e1cb; color:var(--accent); }
+  .cont .play-btn { background:var(--cream); color:var(--accent); }
+  .icon-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; color:var(--muted); }
+  .icon-btn:hover, .icon-btn[aria-expanded="true"] { color:var(--accent); background:rgba(31,74,51,.07); }
+  .icon-btn:focus-visible { outline:2px solid var(--brass); }
   .save-btn.on { color:var(--brass); }
-  .save-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
-  .list-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:18px 0 10px; }
-  .list-head .recent-date { margin:0; }
-  .more-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; color:var(--muted); padding:4px; border-radius:50%; }
-  .more-btn:hover, .more-btn[aria-expanded="true"] { color:var(--accent); background:rgba(31,74,51,0.08); }
-  .more-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
+
+  .empty-box { margin:6px 16px; padding:26px 20px; text-align:center; color:var(--muted); font-size:15px; line-height:1.7;
+    background:var(--card); border:1px dashed var(--line); border-radius:16px; }
+  .empty-box svg { vertical-align:-4px; }
+
+  /* ====== חיפוש ====== */
+  .search-box { position:relative; margin:0 16px 14px; }
+  .search-box svg { position:absolute; top:50%; right:15px; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+  .search-input {
+    width:100%; font-family:'Heebo',sans-serif; font-size:16px; padding:14px 44px 14px 16px;
+    border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--ink); box-shadow:var(--shadow-sm);
+  }
+  .search-input:focus { outline:2px solid var(--accent); outline-offset:0; border-color:var(--accent); }
+
+  /* ====== תפריט ⋮ ====== */
   .menu {
     position:absolute; z-index:45; min-width:210px; padding:6px 0;
-    background:#fbf7ea; border:1px solid var(--line); border-radius:10px;
-    box-shadow:0 12px 30px rgba(38,33,26,.22);
+    background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:0 14px 34px rgba(35,30,23,.22);
   }
   .menu a, .menu button {
     display:flex; align-items:center; gap:10px; width:100%; padding:11px 16px;
-    font-family:'Heebo',sans-serif; font-size:15px; color:var(--ink); text-decoration:none; text-align:right;
-    background:none; border:0; cursor:pointer;
+    font-size:15px; color:var(--ink); text-decoration:none; text-align:right; background:none; border:0; cursor:pointer;
   }
-  .menu a:hover, .menu button:hover, .menu a:focus-visible, .menu button:focus-visible { background:rgba(31,74,51,.08); outline:none; }
+  .menu a:hover, .menu button:hover, .menu a:focus-visible, .menu button:focus-visible { background:rgba(31,74,51,.07); outline:none; }
   .menu svg { color:var(--accent); flex-shrink:0; }
 
-  /* ====== נגן קבוע בתחתית המסך ====== */
-  .player {
-    position:fixed; bottom:0; left:0; right:0; z-index:40;
-    background:var(--accent); color:#f6ecd3; box-shadow:0 -6px 22px rgba(0,0,0,.28);
-    padding:10px 16px calc(12px + env(safe-area-inset-bottom));
+  /* ====== סרגל לשוניות ====== */
+  .tabs {
+    position:fixed; left:0; right:0; bottom:0; z-index:30;
+    height:calc(var(--tabs-h) + var(--safe-b)); padding-bottom:var(--safe-b);
+    display:flex; justify-content:space-around; align-items:center;
+    background:rgba(255,253,247,.96); border-top:1px solid var(--line);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
   }
-  .player-in { max-width:760px; margin:0 auto; }
-  .player-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .player-title { all:unset; cursor:pointer; font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:16px;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-  .player-title:hover { text-decoration:underline; }
-  .player-title:focus-visible { outline:2px solid #d9b876; outline-offset:2px; }
-  .player-side { display:inline-flex; align-items:center; gap:8px; flex-shrink:0; }
-  .player-speed {
-    font-family:'Heebo',sans-serif; font-size:12.5px; font-weight:600; cursor:pointer; direction:ltr;
-    color:#f6ecd3; background:none; border:1px solid rgba(246,236,211,.5); border-radius:14px; padding:2px 9px;
+  .tab { all:unset; cursor:pointer; position:relative; display:flex; flex-direction:column; align-items:center; gap:3px;
+    font-size:11.5px; font-weight:600; color:var(--muted); padding:6px 12px; border-radius:12px; }
+  .tab.on { color:var(--accent); }
+  .tab:focus-visible { outline:2px solid var(--brass); }
+  .badge { position:absolute; top:0; left:4px; min-width:17px; height:17px; padding:0 5px; border-radius:9px;
+    background:var(--brass); color:#fff; font-size:10.5px; font-weight:700; line-height:17px; text-align:center; }
+
+  /* ====== נגן קטן ====== */
+  .mini {
+    position:fixed; left:10px; right:10px; z-index:35; bottom:calc(var(--tabs-h) + var(--safe-b) + 8px);
+    height:60px; display:flex; align-items:center; gap:4px; padding:0 8px 0 6px; overflow:hidden;
+    background:var(--accent); color:var(--cream); border-radius:14px; box-shadow:0 10px 26px rgba(0,0,0,.28);
   }
-  .player-speed.fast { background:#d9b876; color:var(--accent); border-color:#d9b876; }
-  .player-close { all:unset; cursor:pointer; opacity:.75; display:inline-flex; padding:4px; }
-  .player-close:hover { opacity:1; }
-  .player-seek { width:100%; margin:8px 0 0; accent-color:#d9b876; cursor:pointer; }
-  .player-times { display:flex; justify-content:space-between; font-size:11.5px; opacity:.8; font-variant-numeric:tabular-nums; }
-  .player-ctrl { display:flex; justify-content:center; align-items:center; gap:26px; margin-top:2px; }
-  .player-ctrl button { all:unset; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; }
-  .player-ctrl button:focus-visible { outline:2px solid #d9b876; outline-offset:2px; }
-  .player-ctrl .player-skip { width:40px; height:40px; opacity:.9; }
-  .player-ctrl .player-skip:hover { opacity:1; }
-  .player-ctrl .player-main { width:46px; height:46px; background:#f6ecd3; color:var(--accent) !important; }
-  body.has-player .wrap { padding-bottom:180px; }
-  body.has-player .toast { bottom:170px; }
+  .mini-open { all:unset; cursor:pointer; flex:1; min-width:0; display:flex; align-items:center; gap:10px; padding:6px; }
+  .mini-th { width:40px; height:40px; border-radius:9px; flex-shrink:0; background:url('bg-rabbi.jpg') 55% 35% / cover; }
+  .mini-gr { min-width:0; display:flex; flex-direction:column; }
+  .mini-t { font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mini-s { font-size:11.5px; opacity:.75; font-variant-numeric:tabular-nums; }
+  .mini-btn { all:unset; cursor:pointer; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .mini-btn:hover { background:rgba(255,255,255,.1); }
+  .mini-prog { position:absolute; bottom:0; right:0; left:0; height:3px; background:rgba(255,255,255,.16); }
+  .mini-prog i { position:absolute; top:0; bottom:0; right:0; width:0; background:var(--gold); }
+
+  /* ====== נגן מלא ====== */
+  .sheet {
+    position:fixed; inset:0; z-index:50; color:var(--cream);
+    background:linear-gradient(180deg,#265339,#173826 70%);
+    display:flex; justify-content:center; overflow-y:auto;
+    animation:sheetUp .28s cubic-bezier(.22,.8,.25,1) both;
+  }
+  @keyframes sheetUp { from { transform:translateY(100%); } to { transform:none; } }
+  .sheet-in { width:100%; max-width:440px; padding:calc(10px + var(--safe-t)) 24px calc(24px + var(--safe-b)); display:flex; flex-direction:column; }
+  .sheet-top { display:flex; justify-content:space-between; align-items:center; font-size:13px; opacity:.9; margin-bottom:18px; }
+  .sheet-top button { all:unset; cursor:pointer; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; }
+  .sheet-top button:hover { background:rgba(255,255,255,.1); }
+  .sheet-art { width:100%; aspect-ratio:1; max-height:44vh; border-radius:20px; position:relative; overflow:hidden; flex-shrink:0;
+    background:url('bg-rabbi.jpg') 55% 32% / cover; box-shadow:0 20px 44px rgba(0,0,0,.35); }
+  .sheet-art::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, transparent 55%, rgba(10,22,15,.75)); }
+  .sheet-art span { position:absolute; bottom:14px; right:16px; z-index:1; font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:15px; color:var(--gold); }
+  .sheet-title { all:unset; cursor:pointer; display:block; font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:26px; margin-top:22px; line-height:1.2; }
+  .sheet-title:hover { text-decoration:underline; text-underline-offset:4px; }
+  .sheet-sub { font-size:14px; opacity:.75; margin-top:4px; }
+  .sheet-seek { width:100%; margin-top:22px; accent-color:var(--gold); cursor:pointer; height:22px; }
+  .sheet-times { display:flex; justify-content:space-between; font-size:12px; opacity:.72; font-variant-numeric:tabular-nums; }
+  .sheet-times span { direction:ltr; }
+  .sheet-ctrl { display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding:0 10px; }
+  .sheet-ctrl button { all:unset; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; }
+  .sheet-ctrl .skip { width:56px; height:56px; }
+  .sheet-ctrl .skip:hover { background:rgba(255,255,255,.08); }
+  .sheet-ctrl .big { width:74px; height:74px; background:var(--cream); color:var(--accent); box-shadow:0 8px 20px rgba(0,0,0,.25); }
+  .sheet-bot { display:flex; justify-content:space-around; margin-top:26px; }
+  .sheet-bot > * { all:unset; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:12px; opacity:.9; padding:6px 8px; border-radius:10px; min-width:54px; }
+  .sheet-bot > *:hover { background:rgba(255,255,255,.08); opacity:1; }
+  .sheet-bot > [hidden] { display:none; }
+  .sheet-bot .spd { border:1.5px solid rgba(246,236,211,.6); border-radius:10px; padding:1px 8px; font-weight:700; font-size:13px; direction:ltr; }
+  .sheet-bot .on { color:var(--gold); }
+  .sheet :focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
 
   .toast {
-    position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(16px);
-    background:var(--ink); color:var(--paper); padding:11px 22px; border-radius:22px;
-    font-size:14px; font-weight:600; opacity:0; pointer-events:none;
-    transition:opacity .25s ease, transform .25s ease;
-    box-shadow:0 10px 24px rgba(0,0,0,0.28); z-index:50;
-    max-width:calc(100vw - 40px); text-align:center;
+    position:fixed; left:50%; bottom:calc(var(--tabs-h) + var(--mini-h) + var(--safe-b) + 18px);
+    transform:translateX(-50%) translateY(12px); z-index:60;
+    background:var(--ink); color:var(--cream); padding:10px 20px; border-radius:22px;
+    font-size:14px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
+    box-shadow:0 10px 24px rgba(0,0,0,.28); max-width:calc(100vw - 40px); text-align:center;
   }
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-  .search-row { position:relative; margin-bottom:24px; }
-  .search-icon {
-    position:absolute; top:50%; right:18px; transform:translateY(-50%);
-    color:var(--muted); pointer-events:none;
-  }
-  .search-input {
-    width:100%; box-sizing:border-box; font-family:'Heebo',sans-serif; font-size:16px;
-    padding:13px 46px 13px 18px; border:1px solid var(--line); border-radius:24px;
-    background:#fbf7ea; color:var(--ink);
-    transition:border-color .15s ease;
-  }
-  .search-input:focus-visible { outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
-  .suggest {
-    position:absolute; top:calc(100% + 6px); right:0; left:0; z-index:6;
-    background:#fbf7ea; border:1px solid var(--line); border-radius:10px;
-    box-shadow:0 10px 26px rgba(38,33,26,.18); overflow:hidden;
-  }
-  .suggest button {
-    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
-    width:100%; padding:12px 18px; cursor:pointer; text-align:right;
-    font-family:'Heebo',sans-serif; font-size:16px; color:var(--ink);
-    background:none; border:0; border-bottom:1px solid var(--line);
-  }
-  .suggest button:last-child { border-bottom:0; }
-  .suggest button:hover, .suggest button.active { background:rgba(31,74,51,.08); }
-  .suggest .yr { color:var(--muted); font-size:13.5px; flex-shrink:0; }
-  .suggest .none { padding:12px 18px; color:var(--muted); font-size:14.5px; }
-  .shiur-row.hl { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
-
-  /* כפתור "חדש השבוע" - במקום שבו היה "בדוק שיעורים חדשים" */
-  .recent-row { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
-  .recent-btn {
-    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
-    font-family:'Heebo',sans-serif; font-size:14px; font-weight:600; color:var(--accent);
-    background:#fbf7ea; border:1px solid var(--accent); padding:7px 16px; border-radius:20px;
-    box-shadow:var(--shadow-sm);
-    transition:background .15s ease, color .15s ease;
-  }
-  .recent-btn:hover { background:var(--accent); color:var(--paper); }
-  .recent-btn:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
-  .recent-badge {
-    min-width:20px; height:20px; padding:0 6px; border-radius:10px; font-size:12px;
-    display:inline-flex; align-items:center; justify-content:center;
-    background:var(--brass); color:#fff;
-  }
-  .recent-date { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:17px; color:#f6ecd3; margin:18px 0 10px; text-shadow:0 1px 6px rgba(20,14,8,0.5); }
-
-  .no-content, .note {
-    background:#fbf7ea; border:1px dashed var(--line); border-radius:6px;
-    padding:22px; text-align:center; color:var(--muted); font-size:15px; line-height:1.6;
+  /* ====== מחשב: הלשוניות עוברות למעלה, התוכן ממורכז ====== */
+  @media (min-width: 900px) {
+    :root { --tabs-h: 0px; }
+    body { padding-bottom:calc(var(--mini-h) + 40px); }
+    .tabs {
+      position:sticky; top:0; bottom:auto; height:auto; padding:10px 0; justify-content:center; gap:8px;
+      border-top:0; border-bottom:1px solid var(--line);
+    }
+    .tab { flex-direction:row; gap:8px; font-size:14.5px; padding:9px 18px; }
+    .tab.on { background:rgba(31,74,51,.08); }
+    .tab svg { width:20px; height:20px; }
+    .badge { position:static; }
+    .hero { margin:18px 16px 0; border-radius:22px; height:300px; }
+    .hero h1 br { display:none; }
+    .mini { left:50%; right:auto; width:720px; transform:translateX(-50%); bottom:16px; }
+    .sheet { background:rgba(12,24,17,.55); align-items:center; animation:fadeIn .2s ease both; }
+    .sheet-in { background:linear-gradient(180deg,#265339,#173826 70%); border-radius:24px; margin:20px; padding:16px 28px 26px; box-shadow:0 30px 60px rgba(0,0,0,.4); }
+    .sheet-art { max-height:320px; }
+    .grid { grid-template-columns:repeat(6,1fr); }
+    .tiles { flex-wrap:wrap; overflow:visible; }
   }
 </style>
 </head>
 <body>
-<script>
-  // גובה קבוע לשכבת הרקע (ראו body::before) - לפני שהדף מצויר
-  (function(){
-    var h = Math.max(screen.width || 0, screen.height || 0, window.innerHeight || 0);
-    if (h) document.documentElement.style.setProperty('--bg-h', h + 'px');
-  })();
-</script>
-<div class="wrap">
-  <header class="hero">
-    <h1 id="siteTitle">שיעורי פרשת שבוע ומועדים</h1>
-    <p class="byline">מאת הרה"ג רבי יצחק ולדומירסקי שליט"א</p>
-    <div class="ornament" aria-hidden="true">
-      <svg viewBox="0 0 220 20" width="180" height="18">
-        <line x1="0" y1="10" x2="85" y2="10" stroke="currentColor" stroke-width="1"></line>
-        <path d="M110 1 L119 10 L110 19 L101 10 Z" fill="currentColor"></path>
-        <line x1="135" y1="10" x2="220" y2="10" stroke="currentColor" stroke-width="1"></line>
-      </svg>
-    </div>
-    <p class="meta" id="headerMeta">טוען…</p>
-  </header>
-  <div class="recent-row" id="recentRow" hidden>
-    <button class="recent-btn" id="recentBtn"></button>
-    <button class="recent-btn" id="listBtn"></button>
-  </div>
-  <div class="search-row">
-    <svg class="search-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-    <input type="text" class="search-input" id="searchInput" placeholder="פרשה או מועד, למשל: נח תשפה" autocomplete="off">
-    <div class="suggest" id="suggest" hidden></div>
-  </div>
-  <div id="app"></div>
-</div>
+<nav class="tabs" id="tabs" aria-label="ניווט ראשי">
+  <button class="tab" data-tab="home"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5M5.5 10v10h13V10"/></svg>בית</button>
+  <button class="tab" data-tab="recent"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>חדש<span class="badge" id="badgeNew" hidden></span></button>
+  <button class="tab" data-tab="search"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>חיפוש</button>
+  <button class="tab" data-tab="list"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h11M4 12h11M4 18h7M17 14v6l4.5-3z"/></svg>הרשימה שלי<span class="badge" id="badgeList" hidden></span></button>
+</nav>
+
+<main class="wrap"><div id="app"></div></main>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
 <div class="menu" id="shiurMenu" role="menu" hidden></div>
 
-<div class="player" id="player" hidden>
-  <div class="player-in">
-    <div class="player-top">
-      <button class="player-title" id="playerTitle" title="לדף השיעור"></button>
-      <span class="player-side">
-        <button class="player-speed" id="playerSpeed" title="מהירות השמעה"></button>
-        <button class="player-close" id="playerClose" title="סגור את הנגן" aria-label="סגור את הנגן"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      </span>
+<div class="mini" id="mini" hidden>
+  <button class="mini-open" id="miniOpen" aria-label="פתח את הנגן">
+    <span class="mini-th"></span>
+    <span class="mini-gr"><span class="mini-t" id="miniTitle"></span><span class="mini-s" id="miniTime">0:00</span></span>
+  </button>
+  <button class="mini-btn" id="miniBack" aria-label="15 שניות אחורה"></button>
+  <button class="mini-btn" id="miniPlay" aria-label="נגן / השהה"></button>
+  <span class="mini-prog"><i id="miniProg"></i></span>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="נגן" hidden>
+  <div class="sheet-in">
+    <div class="sheet-top">
+      <button id="sheetDown" aria-label="הקטן את הנגן"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+      <span id="sheetSrc">מתנגן עכשיו</span>
+      <button id="sheetClose" aria-label="עצור וסגור את הנגן"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
-    <input type="range" class="player-seek" id="playerSeek" min="0" max="1000" value="0" aria-label="מיקום בשיעור">
-    <div class="player-times"><span id="playerCur">0:00</span><span id="playerDur">0:00</span></div>
-    <div class="player-ctrl">
-      <button class="player-skip" id="playerBack" title="15 שניות אחורה" aria-label="15 שניות אחורה"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><text x="12" y="15.5" font-size="7.5" font-family="Heebo,sans-serif" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">15</text></svg></button>
-      <button class="player-main" id="playerPlay" aria-label="נגן / השהה"></button>
-      <button class="player-skip" id="playerFwd" title="15 שניות קדימה" aria-label="15 שניות קדימה"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/><text x="12" y="15.5" font-size="7.5" font-family="Heebo,sans-serif" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">15</text></svg></button>
+    <div class="sheet-art"><span>שיעורי פרשת שבוע ומועדים</span></div>
+    <button class="sheet-title" id="sheetTitle" title="לדף השיעור"></button>
+    <div class="sheet-sub" id="sheetSub"></div>
+    <input type="range" class="sheet-seek" id="seek" min="0" max="1000" value="0" aria-label="מיקום בשיעור">
+    <div class="sheet-times"><span id="curT">0:00</span><span id="remT">-0:00</span></div>
+    <div class="sheet-ctrl">
+      <button class="skip" id="back15" aria-label="15 שניות אחורה"></button>
+      <button class="big" id="bigPlay" aria-label="נגן / השהה"></button>
+      <button class="skip" id="fwd15" aria-label="15 שניות קדימה"></button>
+    </div>
+    <div class="sheet-bot">
+      <button id="speedBtn" aria-label="מהירות השמעה"><span class="spd" id="speedVal">1×</span>מהירות</button>
+      <a id="sheetSummary" target="_blank" rel="noopener" hidden><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6"/></svg>סיכום</a>
+      <button id="sheetSave"></button>
+      <button id="sheetNext" hidden><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h11M4 12h11M4 18h7M17 14v6l4.5-3z"/></svg>הבא ברשימה</button>
     </div>
   </div>
-  <audio id="audio" preload="none"></audio>
 </div>
+<audio id="audio" preload="none"></audio>
 
 <script>
 (function(){
   // ====== הגדרות ======
   // כתובת הענן הציבורית של דלי הפרשות. עד שהדלי נוצר - האתר יציג הודעת הקמה.
   const R2_BASE = "https://pub-c502103793ec448b9964b8779d053cd4.r2.dev";
+  const RABBI = 'הרה"ג רבי יצחק ולדומירסקי שליט"א';
 
   // ====== האמת הקבועה: פרשות, סדר, ושיוך לחומש ======
   const CHUMASHIM = [
@@ -371,6 +427,8 @@
   // עמוד מועדים). ה"מועד"/"פרשת" עדיין קיימים בשם הקובץ ובלוגיקת הפענוח -
   // זה רק עניין תצוגתי.
   function itemLabel(key, label){ return moadimNames[key] ? label : ('פרשת ' + label); }
+  function keyLabel(key){ return itemLabel(key, pairLabel[key] || key); }
+  function chumashLabel(name){ return name === 'מועדים' ? name : 'חומש ' + name; }
 
   // ====== גימטריה לשנים (תשפו -> 786, לצורך מיון) ======
   const GEM = {'א':1,'ב':2,'ג':3,'ד':4,'ה':5,'ו':6,'ז':7,'ח':8,'ט':9,'י':10,'כ':20,'ל':30,'מ':40,'נ':50,'ס':60,'ע':70,'פ':80,'צ':90,'ק':100,'ר':200,'ש':300,'ת':400,'ך':20,'ם':40,'ן':50,'ף':80,'ץ':90};
@@ -433,11 +491,10 @@
   let byPath = {};            // נתיב שמע -> השיעור המפוענח
   let view = { type:'shelf' };
   let setupMode = false;
+  let parashaFilter = { key:null, val:'all' };   // סינון לפי שנה/עיון בדף פרשה
   const app = document.getElementById('app');
-  const headerMeta = document.getElementById('headerMeta');
 
   function chumashOf(pageKey){
-    const first = pageKey.split(' · ')[0]; // לא בשימוש - ליתר ביטחון
     for (const c of CHUMASHIM){
       for (const p of c.parashot){
         if (pageKey === p || (pairKeyOf[p] === pageKey)) return c.name;
@@ -460,15 +517,27 @@
     return keys;
   }
 
-  const ICON_HOME = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10v9.5a1 1 0 0 0 1 1H9.5v-6h5v6H17.5a1 1 0 0 0 1-1V10"></path></svg>';
-  const BREADCRUMB_HOME = `<button class="home-link" id="homeBtn">${ICON_HOME} לדף הבית</button><span class="breadcrumb-sep">·</span>`;
+  // ====== אייקונים ======
+  // extra: מאפייני ציור ל-svg; בלי ערך = קווי מתאר. '' = בלי מאפיינים (צורה מלאה לפי ה-path)
+  function svg(size, body, extra){ return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" ${extra == null ? 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' : extra}>${body}</svg>`; }
+  const iconPlay  = n => svg(n, '<path d="M8 5v14l11-7z" fill="currentColor"/>', '');
+  const iconPause = n => svg(n, '<path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/>', '');
+  const iconBack15 = n => svg(n, '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><text x="12" y="15.5" font-size="7.5" font-family="Heebo,sans-serif" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">15</text>', 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"');
+  const iconFwd15  = n => svg(n, '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/><text x="12" y="15.5" font-size="7.5" font-family="Heebo,sans-serif" font-weight="700" fill="currentColor" stroke="none" text-anchor="middle">15</text>', 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"');
+  const ICON_BM    = svg(20, '<path d="M6 3h12v18l-6-4-6 4z"/>');
+  const ICON_BM_ON = svg(20, '<path d="M6 3h12v18l-6-4-6 4z" fill="currentColor"/>');
+  const ICON_MORE  = svg(20, '<circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/>', 'fill="currentColor"');
+  const ICON_LINK  = svg(17, '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>');
+  const ICON_CHECK = svg(17, '<circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.5 3 3 6-6.5"/>');
+  // הורדת השמע: אוזניות עם חץ למטה (להבדיל מ"סיכום", שהוא ה-PDF)
+  const ICON_AUDIO_DL = svg(17, '<path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3z"/><path d="M3 19a2 2 0 0 0 2 2h1v-6H3z"/><path d="M12 9v7"/><path d="m9 13 3 3 3-3"/>');
+  const ICON_DOC   = svg(14, '<path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6"/>');
+  const ICON_BACK  = svg(20, '<path d="m9 6 6 6-6 6"/>', 'fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"');
+  const ICON_CHEV  = svg(16, '<path d="m15 6-6 6 6 6"/>', 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"');
+  const ICON_SEARCH = svg(17, '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>');
+  const ICON_X     = svg(18, '<path d="M6 6l12 12M18 6 6 18"/>');
 
-  const ICON_LINK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>';
-  // הורדת השמע: אוזניות עם חץ למטה (להבדיל מ"סיכום", שהוא הורדת ה-PDF)
-  const ICON_AUDIO_DL = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1v-6h3z"></path><path d="M3 19a2 2 0 0 0 2 2h1v-6H3z"></path><path d="M12 9v7"></path><path d="m9 13 3 3 3-3"></path></svg>';
-  const ICON_DOWNLOAD = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 11 5 5 5-5"></path><path d="M5 21h14"></path></svg>';
-
-  // בונה קישור ישיר לפרשה+שנה מסוימת - אותה גרנולריות שתפריט ההצעות כבר תומך בה
+  // בונה קישור ישיר לפרשה+שנה מסוימת
   function directLink(key, year){
     const base = location.origin + location.pathname;
     return `${base}?parasha=${encodeURIComponent(key)}&year=${encodeURIComponent(year)}`;
@@ -496,15 +565,39 @@
     }
   }
 
-  // כפתורי הכרטיסים מטופלים בהאצלת אירוע יחידה על app, כי app.innerHTML
+  function go(v){ view = v; render(); scrollTop(); }
+
+  // כל הלחיצות בתוך הדפים מטופלות בהאצלת אירוע יחידה על app, כי app.innerHTML
   // מוחלף בכל רינדור - כך לא צריך לחבר מחדש מאזין לכל כפתור בנפרד.
   app.addEventListener('click', (e) => {
-    const play = e.target.closest('.play-btn');
-    if (play) playShiur(play.closest('.shiur-row').dataset.path);
-    const save = e.target.closest('.save-btn');
-    if (save) toggleSaved(save.closest('.shiur-row').dataset.path);
-    const more = e.target.closest('.more-btn');
-    if (more) openMenu(more);
+    const t = e.target;
+    const play = t.closest('.play-btn');
+    if (play){ playShiur(play.closest('[data-path]').dataset.path); return; }
+    const save = t.closest('.save-btn');
+    if (save){ toggleSaved(save.closest('[data-path]').dataset.path); return; }
+    const more = t.closest('.more-btn');
+    if (more){ openMenu(more); return; }
+    if (t.closest('.back-btn')){ go(backTarget()); return; }
+    const vol = t.closest('.vol');
+    if (vol){ go({ type:'chumash', name:vol.dataset.chumash }); return; }
+    const prow = t.closest('.prow');
+    if (prow){ go({ type:'parasha', key:prow.dataset.key, year:prow.dataset.year || null }); return; }
+    const chip = t.closest('.chip');
+    if (chip){ parashaFilter = { key:view.key, val:chip.dataset.f }; renderParasha(view.key); return; }
+    // כרטיס "חדש" / "המשך האזנה" - לחיצה על הכרטיס עצמו (לא על ▶) פותחת את הדף שלו
+    const card = t.closest('.tile, .cont');
+    if (card){
+      const s = byPath[card.dataset.path];
+      if (card.classList.contains('cont')){ playShiur(s.path); return; }
+      if (s){ go({ type:'parasha', key:s.pageKey, year:s.year }); }
+      return;
+    }
+    if (t.closest('#searchFake')){ go({ type:'search' }); return; }
+    const link = t.closest('[data-go]');
+    if (link){ go({ type:link.dataset.go }); return; }
+    if (t.closest('#playListBtn')){ playList(); return; }
+    if (t.closest('#installGo')){ doInstall(); return; }
+    if (t.closest('#installX')){ dismissInstall(); return; }
   });
 
   // ====== תפריט "אפשרויות נוספות" (⋮) של כרטיס ======
@@ -513,9 +606,17 @@
   const menuEl = document.getElementById('shiurMenu');
   let menuFor = null;   // { path, btn }
 
+  // כמה מתחתית המסך תפוס ע"י הלשוניות והנגן הקטן (כדי שהתפריט לא ייפתח מתחתם)
+  function bottomChrome(){
+    const tabsTop = document.getElementById('tabs').getBoundingClientRect().top;
+    const mini = document.body.classList.contains('has-player') ? 70 : 0;
+    return tabsTop > window.innerHeight / 2 ? window.innerHeight - tabsTop + mini : mini;
+  }
+
   function openMenu(btn){
-    const path = btn.closest('.shiur-row').dataset.path;
+    const path = btn.closest('[data-path]').dataset.path;
     if (menuFor && menuFor.path === path){ closeMenu(); return; }
+    closeMenu();
     const s = byPath[path];
     if (!s) return;
     const done = !!(getProg(path) || {}).done;
@@ -527,7 +628,7 @@
     menuEl.hidden = false;
     btn.setAttribute('aria-expanded', 'true');
     const r = btn.getBoundingClientRect(), m = menuEl.getBoundingClientRect();
-    const below = r.bottom + 6 + m.height < window.innerHeight - (document.body.classList.contains('has-player') ? 170 : 0);
+    const below = r.bottom + 6 + m.height < window.innerHeight - bottomChrome();
     menuEl.style.top = (window.scrollY + (below ? r.bottom + 6 : r.top - 6 - m.height)) + 'px';
     menuEl.style.left = Math.max(8, Math.min(r.left, window.innerWidth - m.width - 8)) + 'px';
     const first = menuEl.querySelector('a,button');
@@ -550,17 +651,20 @@
   document.addEventListener('click', (e) => {
     if (menuFor && !menuEl.contains(e.target) && !e.target.closest('.more-btn')) closeMenu();
   });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (menuFor) closeMenu(); else if (sheetOpen) history.back();
+  });
   window.addEventListener('scroll', closeMenu, { passive:true });
   window.addEventListener('resize', closeMenu);
 
-  // ====== זיכרון האזנה (התקדמות, נשמע) ======
+  // ====== זיכרון האזנה (התקדמות, נשמע, הרשימה שלי) ======
   // נשמר בדפדפן של המכשיר בלבד (localStorage), בלי משתמשים. כל הגישה עוברת
   // דרך getProg/setProg - כדי שבעתיד אפשר יהיה לחבר כאן סנכרון להרשמה
   // אופציונלית בלי לגעת בשאר הקוד. המפתחות מתחילים ב-"parasha:" כי אתר
   // המשניות יושב באותה כתובת (danvlado1234-sketch.github.io) ולכן חולק
   // את אותו אחסון - כך הם לא מתערבבים.
-  // מבנה: נתיב שמע -> { t: שניות שנשמעו, d: אורך, done: נשמע, at: מתי }
+  // מבנה: נתיב שמע -> { t: שניות שנשמעו, d: אורך, done: נשמע, saved: ברשימה, at: מתי }
   const STORE_KEY = 'parasha:progress';
   let progress = {};
   try { progress = JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {}; } catch (e) { progress = {}; }
@@ -580,7 +684,6 @@
     saveSoon();
   }
 
-  // ====== הרשימה שלי ======
   function listOf(pred, sortKey, desc){
     return Object.keys(progress)
       .filter(path => byPath[path] && pred(progress[path]))
@@ -592,6 +695,8 @@
   // התחילו ולא סיימו (ולא שמורים - אלה מופיעים ברשימה עצמה)
   function continueList(){ return listOf(p => !p.saved && !p.done && p.t > 5, 'at', true).slice(0, 10); }
   function heardList(){ return listOf(p => p.done, 'doneAt', true).slice(0, 10); }
+  // השיעור האחרון שהתחילו ולא סיימו (כולל שמורים) - לכרטיס "המשך האזנה" בבית
+  function lastInProgress(){ return listOf(p => !p.done && p.t > 5, 'at', true)[0] || null; }
 
   function toggleSaved(path){
     const p = getProg(path) || {};
@@ -599,8 +704,16 @@
     setProg(path, p.saved ? { saved: false } : Object.assign({ saved: true, savedAt: Date.now() }, p.done ? { done: false, t: 0 } : {}));
     saveProgress();
     refreshCards(path);
-    updateRecentBtn();
+    updateBadges();
+    updateSheet();
     showToast(p.saved ? 'הוסר מהרשימה שלי' : 'נוסף לרשימה שלי');
+  }
+  function toggleHeard(path){
+    const p = getProg(path) || {};
+    setProg(path, p.done ? { done: false, t: 0 } : { done: true });
+    saveProgress();
+    refreshCards(path);
+    updateBadges();
   }
   const DONE_RATIO = 0.9;   // מ-90% השיעור נחשב "נשמע"
 
@@ -620,70 +733,69 @@
     let meta = '';
     if (playing) meta = 'מתנגן עכשיו' + (d ? ` · ${mins(t)} מתוך ${mins(d)} דק'` : '');
     else if (p.done) meta = `<span class="done">✓ נשמע</span>${d ? ` · ${mins(d)} דק'` : ''}`;
-    else if (t > 5 && d) meta = `נשמעו ${mins(t)} מתוך ${mins(d)} דק'`;
+    else if (t > 5 && d) meta = `נותרו ${mins(d - t)} דק' · נשמעו ${mins(t)} מתוך ${mins(d)}`;
     else if (d) meta = `${mins(d)} דק'`;
     const pct = p.done ? 100 : (d ? Math.min(100, t / d * 100) : 0);
     return { meta, pct, done: !!p.done, saved: !!p.saved && !p.done, isCur, playing };
   }
 
+  // מעדכן במקום (בלי רינדור מחדש) כל אלמנט עם data-path: כרטיס, "חדש", "המשך"
   function refreshCards(path){
-    app.querySelectorAll('.shiur-row').forEach(row => {
-      if (path && row.dataset.path !== path) return;
-      const st = cardState(row.dataset.path);
-      row.querySelector('.shiur-meta').innerHTML = st.meta;
-      row.querySelector('.shiur-bar i').style.width = st.pct + '%';
-      row.classList.toggle('is-done', st.done);
-      row.classList.toggle('playing', st.isCur);
-      const sb = row.querySelector('.save-btn');
-      sb.classList.toggle('on', st.saved);
-      sb.innerHTML = st.saved ? ICON_BM_ON : ICON_BM;
-      sb.title = st.saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי';
-      const pb = row.querySelector('.play-btn');
-      pb.innerHTML = st.playing ? ICON_PAUSE : ICON_PLAY;
-      pb.setAttribute('aria-label', st.playing ? 'השהה' : 'נגן');
+    app.querySelectorAll('[data-path]').forEach(el => {
+      if (path && el.dataset.path !== path) return;
+      const st = cardState(el.dataset.path);
+      const meta = el.querySelector('.shiur-meta'); if (meta) meta.innerHTML = st.meta;
+      const bar = el.querySelector('.shiur-bar i'); if (bar) bar.style.width = st.pct + '%';
+      el.classList.toggle('is-done', st.done);
+      el.classList.toggle('playing', st.isCur);
+      const tag = el.querySelector('.tag'); if (tag) tag.textContent = st.done ? '✓ נשמע' : 'חדש';
+      const sb = el.querySelector('.save-btn');
+      if (sb){
+        sb.classList.toggle('on', st.saved);
+        sb.innerHTML = st.saved ? ICON_BM_ON : ICON_BM;
+        sb.title = st.saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי';
+      }
+      const pb = el.querySelector('.play-btn');
+      if (pb){
+        const n = el.classList.contains('tile') ? 16 : 20;
+        pb.innerHTML = st.playing ? iconPause(n) : iconPlay(n);
+        pb.setAttribute('aria-label', st.playing ? 'השהה' : 'נגן');
+      }
     });
   }
 
-  function toggleHeard(path){
-    const p = getProg(path) || {};
-    setProg(path, p.done ? { done: false, t: 0 } : { done: true });
-    saveProgress();
-    refreshCards(path);
-    updateRecentBtn();
-  }
-
-  // ====== הנגן הקבוע ======
+  // ====== הנגן ======
   // נגן אחד לכל האתר, מחוץ לאזור שמתחלף בניווט - לכן השיעור ממשיך להתנגן
-  // כשעוברים בין דפים. מהירות אחת לכל השיעורים, נשמרת בין ביקורים (באייפון
-  // אין בחירת מהירות בנגן המובנה).
+  // כשעוברים בין דפים. נגן קטן מעל הלשוניות, ולחיצה עליו פותחת נגן מלא.
+  // מהירות אחת לכל השיעורים, נשמרת בין ביקורים.
   const audio = document.getElementById('audio');
-  const playerEl = document.getElementById('player');
-  const seekEl = document.getElementById('playerSeek');
-  const ICON_MORE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
-  const ICON_CHECK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>';
-  const ICON_BM = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
-  const ICON_BM_ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
-  const ICON_PLAY = '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
-  const ICON_PAUSE = '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>';
-  let current = null;   // { path, s, title }
+  const miniEl = document.getElementById('mini');
+  const sheetEl = document.getElementById('sheet');
+  const seekEl = document.getElementById('seek');
+  let current = null;   // { path, s, title, fromList }
   let seeking = false;
+  let sheetOpen = false;
 
   const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
+  const SPEED_KEY = 'parasha:speed';
   let speed = 1;
-  try { const saved = parseFloat(localStorage.getItem('playbackSpeed')); if (SPEEDS.includes(saved)) speed = saved; } catch (e) {}
+  try {
+    const saved = parseFloat(localStorage.getItem(SPEED_KEY) || localStorage.getItem('playbackSpeed'));
+    if (SPEEDS.includes(saved)) speed = saved;
+  } catch (e) {}
   function applySpeed(){ audio.defaultPlaybackRate = speed; audio.playbackRate = speed; }
-  function updateSpeedBtn(){
-    const b = document.getElementById('playerSpeed');
-    b.textContent = speed + '×';
-    b.classList.toggle('fast', speed !== 1);
-    b.setAttribute('aria-label', 'מהירות השמעה ' + speed);
-  }
-  document.getElementById('playerSpeed').addEventListener('click', () => {
+  function updateSpeedBtn(){ document.getElementById('speedVal').textContent = speed + '×'; }
+  document.getElementById('speedBtn').addEventListener('click', () => {
     speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
-    try { localStorage.setItem('playbackSpeed', String(speed)); } catch (e) {}
+    try { localStorage.setItem(SPEED_KEY, String(speed)); } catch (e) {}
     applySpeed(); updateSpeedBtn();
   });
   updateSpeedBtn();
+  document.getElementById('miniPlay').innerHTML = iconPlay(28);
+  document.getElementById('bigPlay').innerHTML = iconPlay(34);
+  document.getElementById('miniBack').innerHTML = iconBack15(26);
+  document.getElementById('back15').innerHTML = iconBack15(36);
+  document.getElementById('fwd15').innerHTML = iconFwd15(36);
 
   // קישור לסיכום ה-PDF של שיעור (אותו נתיב, סיומת pdf), או null אם אין
   function summaryUrl(s){
@@ -692,8 +804,12 @@
     const pdfVer = pdfVersions[pdfPath];
     return R2_BASE.replace(/\/$/,'') + '/' + pdfPath.split('/').map(encodeURIComponent).join('/') + (pdfVer ? '?v=' + encodeURIComponent(pdfVer) : '');
   }
-
   function shiurUrl(s){ return R2_BASE.replace(/\/$/,'') + '/' + s.path.split('/').map(encodeURIComponent).join('/'); }
+
+  // תת-כותרת של שיעור בלי שם הפרשה: "תשפ"ו · שיעור א · עיון"
+  function shiurDetail(s){
+    return `${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}${s.shabbatName ? ' · ' + s.shabbatName : ''}${s.isIyun ? ' · עיון' : ''}`;
+  }
 
   function playShiur(path){
     if (current && current.path === path){ audio.paused ? audio.play() : audio.pause(); return; }
@@ -707,12 +823,11 @@
     current = { path, s, title: shiurTitle(s, s.pageKey, true), fromList: !!p.saved && !p.done };
     audio.src = shiurUrl(s) + (start ? '#t=' + start : '');
     applySpeed();
-    document.getElementById('playerTitle').textContent = current.title;
-    document.getElementById('playerCur').textContent = fmtTime(start);
-    document.getElementById('playerDur').textContent = p.d ? fmtTime(p.d) : '0:00';
-    seekEl.value = p.d ? Math.round(start / p.d * 1000) : 0;
-    playerEl.hidden = false;
+    document.getElementById('miniTitle').textContent = current.title;
+    miniEl.hidden = false;
     document.body.classList.add('has-player');
+    updateTimes(start, p.d || 0);
+    updateSheet();
     setMediaSession();
     audio.play().catch(() => {});
     refreshCards();
@@ -726,50 +841,85 @@
     setProg(current.path, patch);
   }
 
+  function updateTimes(t, d){
+    document.getElementById('miniTime').textContent = d ? `${fmtTime(t)} / ${fmtTime(d)}` : fmtTime(t);
+    document.getElementById('curT').textContent = fmtTime(t);
+    document.getElementById('remT').textContent = '-' + fmtTime(Math.max(0, d - t));
+    const pct = d ? Math.min(100, t / d * 100) : 0;
+    document.getElementById('miniProg').style.width = pct + '%';
+    if (!seeking) seekEl.value = Math.round(pct * 10);
+  }
+
+  // תוכן הנגן המלא לפי השיעור הנוכחי
+  function updateSheet(){
+    if (!current) return;
+    const s = current.s, p = getProg(current.path) || {};
+    document.getElementById('sheetSrc').textContent = current.fromList ? 'מתנגן מתוך: הרשימה שלי' : 'מתנגן עכשיו';
+    document.getElementById('sheetTitle').textContent = itemLabel(s.name, pairLabel[s.name] || s.name);
+    document.getElementById('sheetSub').textContent = shiurDetail(s) + ' · ' + RABBI;
+    const sum = document.getElementById('sheetSummary'), url = summaryUrl(s);
+    sum.hidden = !url; if (url) sum.href = url;
+    const saved = !!p.saved && !p.done;
+    const sv = document.getElementById('sheetSave');
+    sv.innerHTML = (saved ? ICON_BM_ON : ICON_BM) + (saved ? 'שמור' : 'שמירה');
+    sv.classList.toggle('on', saved);
+    sv.setAttribute('aria-label', saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי');
+    document.getElementById('sheetNext').hidden = !(current.fromList && savedList().some(x => x.path !== current.path));
+  }
+
   let lastUi = 0;
   audio.addEventListener('timeupdate', () => {
     if (!current) return;
     const d = audio.duration, t = audio.currentTime;
-    if (!seeking && d && isFinite(d)) seekEl.value = Math.round(t / d * 1000);
-    document.getElementById('playerCur').textContent = fmtTime(t);
+    if (d && isFinite(d)) updateTimes(t, d);
     const now = Date.now();
-    if (now - lastUi < 1000) return;   // פעם בשנייה מספיק לכרטיס ולזיכרון
+    if (now - lastUi < 1000) return;   // פעם בשנייה מספיק לכרטיסים ולזיכרון
     lastUi = now;
     const wasDone = !!(getProg(current.path) || {}).done;
     rememberPosition();
     refreshCards(current.path);
-    if (!wasDone && (getProg(current.path) || {}).done) updateRecentBtn();
+    if (!wasDone && (getProg(current.path) || {}).done){ updateBadges(); updateSheet(); }
   });
   audio.addEventListener('loadedmetadata', () => {
     if (!current) return;
-    document.getElementById('playerDur').textContent = fmtTime(audio.duration);
+    updateTimes(audio.currentTime, audio.duration);
     rememberPosition();
     refreshCards(current.path);
   });
   function onPlayState(){
-    const btn = document.getElementById('playerPlay');
-    btn.innerHTML = audio.paused ? ICON_PLAY.replace(/20/g, '24') : ICON_PAUSE.replace(/20/g, '24');
+    document.getElementById('miniPlay').innerHTML = audio.paused ? iconPlay(28) : iconPause(28);
+    document.getElementById('bigPlay').innerHTML = audio.paused ? iconPlay(34) : iconPause(34);
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
     if (current){ rememberPosition(); saveProgress(); refreshCards(); }
   }
   audio.addEventListener('play', onPlayState);
   audio.addEventListener('pause', onPlayState);
   audio.addEventListener('ended', () => {
-    if (current){ setProg(current.path, { done: true, t: audio.duration || 0 }); saveProgress(); updateRecentBtn(); }
+    if (current){ setProg(current.path, { done: true, t: audio.duration || 0 }); saveProgress(); updateBadges(); }
     onPlayState();
     if (current && current.fromList) playNextInList();
   });
+  // "נגן את הרשימה": מהשיעור הראשון ברשימה. אם הוא כבר מתנגן - לא עוצרים אותו,
+  // רק מסמנים שמעכשיו ממשיכים ממנו ברשימה
+  function playList(){
+    const first = savedList()[0];
+    if (!first) return;
+    if (current && current.path === first.path){
+      current.fromList = true; updateSheet(); setMediaSession();
+      if (audio.paused) audio.play();
+    } else playShiur(first.path);
+  }
   function playNextInList(){
     const next = savedList().find(s => !current || s.path !== current.path);
     if (!next){ showToast('סיימת את הרשימה'); return; }
     showToast('ממשיך לשיעור הבא ברשימה');
     playShiur(next.path);
   }
-  audio.addEventListener('error', () => { if (current) showToast('לא הצלחנו לטעון את השיעור — נסו שוב'); });
+  audio.addEventListener('error', () => { if (current && audio.getAttribute('src')) showToast('לא הצלחנו לטעון את השיעור — נסו שוב'); });
 
   seekEl.addEventListener('input', () => {
     seeking = true;
-    if (audio.duration) document.getElementById('playerCur').textContent = fmtTime(seekEl.value / 1000 * audio.duration);
+    if (audio.duration) document.getElementById('curT').textContent = fmtTime(seekEl.value / 1000 * audio.duration);
   });
   seekEl.addEventListener('change', () => {
     seeking = false;
@@ -779,21 +929,47 @@
     if (!audio.duration) return;
     audio.currentTime = Math.min(Math.max(0, audio.currentTime + sec), audio.duration - 0.5);
   }
-  document.getElementById('playerBack').addEventListener('click', () => skip(-15));
-  document.getElementById('playerFwd').addEventListener('click', () => skip(15));
-  document.getElementById('playerPlay').addEventListener('click', () => { if (current) audio.paused ? audio.play() : audio.pause(); });
-  document.getElementById('playerClose').addEventListener('click', () => {
+  function togglePlay(){ if (current) audio.paused ? audio.play() : audio.pause(); }
+  document.getElementById('miniBack').addEventListener('click', () => skip(-15));
+  document.getElementById('back15').addEventListener('click', () => skip(-15));
+  document.getElementById('fwd15').addEventListener('click', () => skip(15));
+  document.getElementById('miniPlay').addEventListener('click', togglePlay);
+  document.getElementById('bigPlay').addEventListener('click', togglePlay);
+  document.getElementById('sheetSave').addEventListener('click', () => { if (current) toggleSaved(current.path); });
+  document.getElementById('sheetNext').addEventListener('click', () => { if (current){ rememberPosition(); playNextInList(); } });
+
+  // נגן מלא: נפתח כ"דף" בהיסטוריה, כך שכפתור "חזור" של הטלפון סוגר אותו
+  function openSheet(){
+    if (!current || sheetOpen) return;
+    sheetOpen = true;
+    updateSheet();
+    sheetEl.hidden = false;
+    document.body.style.overflow = 'hidden';
+    history.pushState({ sheet:true }, '', location.href);
+    document.getElementById('bigPlay').focus({ preventScroll:true });
+  }
+  function hideSheet(){
+    sheetOpen = false;
+    sheetEl.hidden = true;
+    document.body.style.overflow = '';
+  }
+  document.getElementById('miniOpen').addEventListener('click', openSheet);
+  document.getElementById('sheetDown').addEventListener('click', () => history.back());
+  document.getElementById('sheetClose').addEventListener('click', () => {
     rememberPosition(); saveProgress();
     audio.pause(); current = null;
     audio.removeAttribute('src'); audio.load();
-    playerEl.hidden = true;
+    miniEl.hidden = true;
     document.body.classList.remove('has-player');
     refreshCards();
+    history.back();
   });
-  document.getElementById('playerTitle').addEventListener('click', () => {
+  document.getElementById('sheetTitle').addEventListener('click', () => {
     if (!current) return;
-    view = { type:'parasha', key: current.s.pageKey, year: current.s.year };
-    render(); scrollTop();
+    const s = current.s;
+    history.back();
+    // אחרי שה"חזור" של הנגן מתבצע - מעבר לדף השיעור
+    setTimeout(() => go({ type:'parasha', key:s.pageKey, year:s.year }), 60);
   });
 
   // מסך הנעילה / אוזניות / שעון: שם השיעור וכפתורי שליטה
@@ -802,9 +978,12 @@
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: current.title,
-        artist: 'הרה"ג רבי יצחק ולדומירסקי שליט"א',
+        artist: RABBI,
         album: 'שיעורי פרשת שבוע ומועדים',
-        artwork: [{ src: new URL('bg-rabbi.jpg', location.href).href, sizes: '2000x1500', type: 'image/jpeg' }]
+        artwork: [
+          { src: new URL('icons/icon-512.png', location.href).href, sizes: '512x512', type: 'image/png' },
+          { src: new URL('bg-rabbi.jpg', location.href).href, sizes: '2000x1500', type: 'image/jpeg' }
+        ]
       });
       const ms = navigator.mediaSession;
       ms.setActionHandler('play', () => audio.play());
@@ -820,14 +999,34 @@
   window.addEventListener('pagehide', () => { rememberPosition(); saveProgress(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden){ rememberPosition(); saveProgress(); } });
 
-  // כפתור "לדף הבית" - מחזיר לארון החומשים מכל עומק ניווט בקליק אחד
-  function bindHomeBtn(){
-    const btn = document.getElementById('homeBtn');
-    if (!btn) return;
-    btn.addEventListener('click', () => { view = { type:'shelf' }; render(); scrollTop(); });
+  // ====== לשוניות ======
+  const TAB_OF = { shelf:'home', chumash:'home', parasha:'home', error:'home', recent:'recent', search:'search', list:'list' };
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
+    const t = tab.dataset.tab;
+    go({ type: t === 'home' ? 'shelf' : t });
+  });
+  function updateTabs(){
+    const active = TAB_OF[view.type] || 'home';
+    document.querySelectorAll('.tab').forEach(b => {
+      const on = b.dataset.tab === active;
+      b.classList.toggle('on', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+  }
+  // מונים: "חדש" = שיעורי השבוע שלא נשמעו; "הרשימה שלי" = השמורים
+  function newUnheard(){
+    const r = recentGroups();
+    if (!r.thisWeek) return 0;
+    return r.dates.reduce((n, d) => n + r.groups[d].filter(s => !(getProg(s.path) || {}).done).length, 0);
+  }
+  function updateBadges(){
+    const setBadge = (id, n) => { const b = document.getElementById(id); b.hidden = !n; b.textContent = n || ''; };
+    setBadge('badgeNew', newUnheard());
+    setBadge('badgeList', savedList().length);
   }
 
-  // ====== תצוגות ======
   // ====== כתובת הדף משקפת את התצוגה ======
   // כל מעבר בין דפים נרשם בהיסטוריית הדפדפן, כדי שכפתור "חזור" של הטלפון
   // יחזור דף אחד אחורה (פרשה -> חומש -> דף הבית) ולא יצא מהאתר לגמרי.
@@ -836,6 +1035,7 @@
     const params = new URLSearchParams(location.search);
     if (params.has('new')) return { type:'recent' };
     if (params.has('list')) return { type:'list' };
+    if (params.has('search')) return { type:'search' };
     const key = params.get('parasha');
     if (key && chumashOf(key)) return { type:'parasha', key, year: params.get('year') || null };
     const name = params.get('chumash');
@@ -847,6 +1047,7 @@
     const params = new URLSearchParams();
     if (v.type === 'recent') params.set('new', '1');
     if (v.type === 'list') params.set('list', '1');
+    if (v.type === 'search') params.set('search', '1');
     if (v.type === 'chumash') params.set('chumash', v.name);
     if (v.type === 'parasha'){
       params.set('parasha', v.key);
@@ -862,13 +1063,21 @@
   }
 
   window.addEventListener('popstate', () => {
+    if (sheetOpen){ hideSheet(); return; }
     if (view.type === 'error') return;
     view = viewFromUrl();
     render();
     window.scrollTo(0, 0);
   });
 
+  // לאן מוביל חץ החזרה בראש דף פנימי
+  function backTarget(){
+    if (view.type === 'parasha') return { type:'chumash', name: chumashOf(view.key) };
+    return { type:'shelf' };
+  }
+
   function render(){
+    closeMenu();
     if (view.type !== 'error' && !sameView(view, viewFromUrl())){
       history.pushState(null, '', urlOf(view));
     }
@@ -877,37 +1086,68 @@
     else if (view.type === 'parasha') renderParasha(view.key);
     else if (view.type === 'recent') renderRecent();
     else if (view.type === 'list') renderList();
+    else if (view.type === 'search') renderSearch();
     else renderShelf();
-
-    // אנימציית כניסה: הדף נכנס בעדינות, והכרטיסים בתוכו במפל קל
+    updateTabs();
     app.classList.remove('fade-in');
     void app.offsetWidth;
     app.classList.add('fade-in');
-    app.querySelectorAll('.shelf .volume, .parasha-list .parasha-row').forEach((el, i) => {
-      el.style.animationDelay = Math.min(i * 25, 400) + 'ms';
-    });
-    app.querySelectorAll('.shiur-row').forEach((el, i) => {
-      el.style.animationDelay = Math.min(i * 40, 400) + 'ms';
-    });
   }
 
+  function topbar(crumb){
+    return `<div class="topbar"><button class="back-btn" aria-label="חזרה">${ICON_BACK}</button><span class="crumb">${crumb}</span></div>`;
+  }
+
+  // ====== דף הבית ======
   function renderShelf(){
-    headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
-    let html = '<div class="shelf">';
+    const total = totalCount();
+    let html = `<section class="hero"><div class="hero-in">
+        <h1>שיעורי פרשת שבוע<br> ומועדים</h1>
+        <p class="by">מאת ${RABBI}</p>
+        <p class="count">${setupMode ? 'בהקמה' : total + ' שיעורים בארכיון'}</p>
+      </div></section>
+      <button class="search-fake" id="searchFake">${ICON_SEARCH}חיפוש פרשה או מועד</button>
+      <div id="installSlot">${installHtml()}</div>`;
+    if (setupMode) html += `<div class="empty-box" style="margin-top:18px">האתר עדיין בהקמה — השיעורים יעלו בקרוב בעז"ה.</div>`;
+
+    const cont = lastInProgress();
+    if (cont){
+      const st = cardState(cont.path);
+      html += `<div class="sec"><h3>המשך האזנה</h3></div>
+        <div class="cont" data-path="${escAttr(cont.path)}">
+          <span class="cont-th"></span>
+          <span class="cont-gr"><span class="cont-t">${shiurTitle(cont, cont.pageKey, true)}</span>
+            <span class="shiur-meta">${st.meta}</span><span class="shiur-bar"><i style="width:${st.pct}%"></i></span></span>
+          <button class="play-btn" aria-label="${st.playing ? 'השהה' : 'נגן'}">${st.playing ? iconPause(20) : iconPlay(20)}</button>
+        </div>`;
+    }
+
+    const r = recentGroups();
+    if (r.dates.length){
+      const isDone = s => (getProg(s.path) || {}).done ? 1 : 0;
+      const items = [].concat(...r.dates.map(d => r.groups[d])).sort((a, b) => isDone(a) - isDone(b)).slice(0, 10);
+      html += `<div class="sec"><h3>${r.thisWeek ? 'חדש השבוע' : 'העלאות אחרונות'}</h3><button class="link" data-go="recent">לכל החדשים</button></div><div class="tiles">`;
+      for (const s of items){
+        const st = cardState(s.path);
+        html += `<div class="tile${st.done ? ' is-done' : ''}" data-path="${escAttr(s.path)}">
+          <span class="tag">${st.done ? '✓ נשמע' : 'חדש'}</span>
+          <div class="tile-t">${itemLabel(s.name, pairLabel[s.name] || s.name)}</div>
+          <div class="tile-s">${shiurDetail(s)}</div>
+          <button class="play-btn" aria-label="${st.playing ? 'השהה' : 'נגן'}">${st.playing ? iconPause(16) : iconPlay(16)}</button>
+        </div>`;
+      }
+      html += '</div>';
+    }
+
+    html += `<div class="sec"><h3>הארכיון</h3></div><div class="grid">`;
     for (const c of CHUMASHIM){
       let count = 0;
       for (const key of pageKeysOf(c)) count += (index[key] || []).length;
-      const empty = count === 0;
-      const volumeLabel = c.name === 'מועדים' ? c.name : ('חומש ' + c.name);
-      html += `<button class="volume${empty ? ' empty' : ''}" data-chumash="${c.name}">
-        ${volumeLabel}<span class="count">${empty ? 'אין עדיין שיעורים' : count + ' שיעורים'}</span></button>`;
+      html += `<button class="vol${count ? '' : ' empty'}" data-chumash="${c.name}"><span class="dot"></span>
+        <span class="vol-n">${c.name}</span><span class="vol-c">${count ? count + ' שיעורים' : 'בקרוב'}</span></button>`;
     }
     html += '</div>';
-    if (setupMode) html = `<div class="note" style="margin-bottom:22px">האתר עדיין בהקמה — השיעורים יעלו בקרוב בעז"ה.</div>` + html;
     app.innerHTML = html;
-    app.querySelectorAll('.volume').forEach(btn => {
-      btn.addEventListener('click', () => { view = { type:'chumash', name:btn.dataset.chumash }; render(); scrollTop(); });
-    });
   }
 
   // ====== חדש השבוע ======
@@ -931,94 +1171,58 @@
     return week.length ? { dates: week, groups, thisWeek: true } : { dates: [dates[0]], groups, thisWeek: false };
   }
 
-  // שני הכפתורים העליונים: "חדש השבוע" ו"הרשימה שלי" (כל אחד רק כשיש בו תוכן)
-  function updateRecentBtn(){
-    const row = document.getElementById('recentRow');
-    const listBtn = document.getElementById('listBtn');
-    const saved = savedList().length;
-    const hasList = saved || continueList().length || heardList().length;
-    listBtn.hidden = !hasList;
-    listBtn.innerHTML = `הרשימה שלי${saved ? ` <span class="recent-badge">${saved}</span>` : ''}`;
-    const r = recentGroups();
-    document.getElementById('recentBtn').hidden = !r.dates.length;
-    row.hidden = !r.dates.length && !hasList;
-    if (!r.dates.length) return;
-    // המונה סופר רק שיעורים שעוד לא נשמעו במכשיר הזה
-    const count = r.dates.reduce((n, d) => n + r.groups[d].filter(s => !(getProg(s.path) || {}).done).length, 0);
-    document.getElementById('recentBtn').innerHTML = r.thisWeek
-      ? `חדש השבוע${count ? ` <span class="recent-badge">${count}</span>` : ''}`
-      : 'העלאות אחרונות';
-  }
-  document.getElementById('recentBtn').addEventListener('click', () => { view = { type:'recent' }; render(); scrollTop(); });
-  document.getElementById('listBtn').addEventListener('click', () => { view = { type:'list' }; render(); scrollTop(); });
-
-  function renderList(){
-    headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
-    const saved = savedList(), cont = continueList(), heard = heardList();
-    let html = `<div class="breadcrumb"><button class="home-link" id="homeBtn">${ICON_HOME} לדף הבית</button></div>
-      <h2 class="page-title">הרשימה שלי</h2>
-      <p class="page-sub">נשמר במכשיר הזה בלבד</p>`;
-    if (!saved.length && !cont.length && !heard.length){
-      html += `<div class="no-content">הרשימה ריקה.<br>לחצו על סימן השמירה ${ICON_BM} ליד שיעור כדי להוסיף אותו לכאן.</div>`;
-    }
-    if (cont.length){
-      html += `<div class="recent-date">המשך האזנה</div>`;
-      for (const s of cont) html += shiurRowHtml(s, s.pageKey, false, false, true);
-    }
-    if (saved.length){
-      html += `<div class="list-head"><span class="recent-date">שמורים להמשך</span>
-        <button class="recent-btn" id="playListBtn">${ICON_PLAY} נגן את הרשימה</button></div>`;
-      for (const s of saved) html += shiurRowHtml(s, s.pageKey, false, false, true);
-    }
-    if (heard.length){
-      html += `<div class="recent-date">נשמעו לאחרונה</div>`;
-      for (const s of heard) html += shiurRowHtml(s, s.pageKey, false, false, true);
-    }
-    app.innerHTML = html;
-    bindHomeBtn();
-    const pl = document.getElementById('playListBtn');
-    if (pl) pl.addEventListener('click', () => playShiur(savedList()[0].path));
-  }
-
   function renderRecent(){
-    headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
     const r = recentGroups();
-    let html = `<div class="breadcrumb"><button class="home-link" id="homeBtn">${ICON_HOME} לדף הבית</button></div>
-      <h2 class="page-title">${r.thisWeek ? 'חדש השבוע' : 'העלאות אחרונות'}</h2>
-      <p class="page-sub">${r.thisWeek ? 'שיעורים שעלו לאתר בשבוע האחרון' : 'השבוע לא עלו שיעורים חדשים - זו ההעלאה האחרונה'}</p>`;
-    if (!r.dates.length) html += `<div class="no-content">אין עדיין מידע על העלאות</div>`;
+    let html = `<div class="page-top"><h2 class="ptitle">${r.thisWeek || !r.dates.length ? 'חדש השבוע' : 'העלאות אחרונות'}</h2>
+      <p class="psub">${r.thisWeek ? 'שיעורים שעלו לאתר בשבוע האחרון' : (r.dates.length ? 'השבוע לא עלו שיעורים חדשים - זו ההעלאה האחרונה' : '')}</p></div>`;
+    if (!r.dates.length) html += `<div class="empty-box">אין עדיין מידע על העלאות</div>`;
     for (const d of r.dates){
-      html += `<div class="recent-date">${parseDay(d).toLocaleDateString('he-IL', { weekday:'long', day:'numeric', month:'long' })}</div>`;
+      html += `<div class="sub-h">${parseDay(d).toLocaleDateString('he-IL', { weekday:'long', day:'numeric', month:'long' })}</div>`;
       // שיעורים שכבר נשמעו - בסוף, עם הסימון שלהם
       const isDone = s => (getProg(s.path) || {}).done ? 1 : 0;
       const list = r.groups[d].slice().sort((a, b) => isDone(a) - isDone(b) || a.path.localeCompare(b.path));
       for (const s of list) html += shiurRowHtml(s, s.pageKey, false, false, true);
     }
     app.innerHTML = html;
-    bindHomeBtn();
   }
 
+  // ====== הרשימה שלי ======
+  function renderList(){
+    const saved = savedList(), cont = continueList(), heard = heardList();
+    let html = `<div class="page-top"><h2 class="ptitle">הרשימה שלי</h2><p class="psub">נשמר במכשיר הזה בלבד</p></div>`;
+    if (!saved.length && !cont.length && !heard.length){
+      html += `<div class="empty-box">הרשימה ריקה.<br>לחצו על סימן השמירה ${ICON_BM} ליד שיעור כדי להוסיף אותו לכאן.</div>`;
+    }
+    if (cont.length){
+      html += `<div class="sub-h">המשך האזנה</div>`;
+      for (const s of cont) html += shiurRowHtml(s, s.pageKey, false, false, true);
+    }
+    if (saved.length){
+      html += `<div class="list-head"><span class="sub-h">שמורים להמשך</span>
+        <button class="pill-btn" id="playListBtn">${iconPlay(16)} נגן את הרשימה</button></div>`;
+      for (const s of saved) html += shiurRowHtml(s, s.pageKey, false, false, true);
+    }
+    if (heard.length){
+      html += `<div class="sub-h">נשמעו לאחרונה</div>`;
+      for (const s of heard) html += shiurRowHtml(s, s.pageKey, false, false, true);
+    }
+    app.innerHTML = html;
+  }
+
+  // ====== חומש ======
   function renderChumash(name){
-    headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
     const c = CHUMASHIM.find(x => x.name === name);
-    const isMoadim = name === 'מועדים';
-    let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ חזרה לתפריט הראשי</button></div>
-      <h2 class="page-title">${isMoadim ? name : ('חומש ' + name)}</h2>
-      <p class="page-sub">${isMoadim ? 'בחרו מועד' : 'בחרו פרשה'}</p><div class="parasha-list">`;
+    let count = 0;
+    for (const key of pageKeysOf(c)) count += (index[key] || []).length;
+    let html = topbar('הארכיון') + `<h2 class="ptitle">${chumashLabel(name)}</h2>
+      <p class="psub">${count ? count + ' שיעורים' : 'עדיין אין שיעורים'}</p><div class="plist">`;
     for (const key of pageKeysOf(c)){
-      const count = (index[key] || []).length;
-      const label = pairLabel[key] || key;
-      const empty = count === 0;
-      html += `<button class="parasha-row${empty ? ' empty' : ''}" data-key="${key}">
-        <span>${itemLabel(key, label)}</span><span class="count">${empty ? '—' : count + ' שיעורים'}</span></button>`;
+      const n = (index[key] || []).length;
+      html += `<button class="prow${n ? '' : ' empty'}" data-key="${key}"><span class="prow-n">${keyLabel(key)}</span>
+        <span class="prow-c">${n ? n + ' שיעורים' : '—'}${n ? ICON_CHEV : ''}</span></button>`;
     }
     html += '</div>';
     app.innerHTML = html;
-    bindHomeBtn();
-    document.getElementById('backBtn').addEventListener('click', () => { view = { type:'shelf' }; render(); });
-    app.querySelectorAll('.parasha-row').forEach(btn => {
-      btn.addEventListener('click', () => { view = { type:'parasha', key:btn.dataset.key }; render(); scrollTop(); });
-    });
   }
 
   // שיעורי דף מסוים, מהחדש לישן (ובאותה שנה: לפי שיעור ואז לפי חלק)
@@ -1029,48 +1233,49 @@
         || (a.part||'').localeCompare(b.part||''));
   }
 
-  // withName: להציג גם את שם הפרשה/המועד (בדף "חדש השבוע" ובנגן, שמערבבים דפים)
+  // withName: להציג גם את שם הפרשה/המועד (בדפים שמערבבים פרשות, ובנגן)
   function shiurTitle(s, key, withName){
     const namePart = withName ? itemLabel(s.name, pairLabel[s.name] || s.name) + ' · ' : (s.name === key ? '' : s.name + ' · ');
-    return `${namePart}${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}${s.shabbatName ? ' · ' + s.shabbatName : ''}${s.isIyun ? ' · עיון' : ''}`;
+    return namePart + shiurDetail(s);
   }
 
-  // כרטיס שיעור אחד (כותרת, סיכום, שיתוף, סימון נשמע, ניגון, התקדמות) -
-  // משותף לדף הפרשה ולדף "חדש השבוע". הניגון עצמו בנגן הקבוע בתחתית.
+  // כרטיס שיעור: ▶, כותרת ומצב האזנה, שמירה, ⋮, סיכום, פס התקדמות
   function shiurRowHtml(s, key, hl, isTarget, withName){
-    const title = shiurTitle(s, key, withName);
     const st = cardState(s.path);
     const pdfUrl = summaryUrl(s);
-    const hasSummary = !!pdfUrl;
     return `<div class="shiur-row${hl ? ' hl' : ''}${st.done ? ' is-done' : ''}${st.isCur ? ' playing' : ''}" data-path="${escAttr(s.path)}"${isTarget ? ' id="target-year"' : ''}>
         <div class="shiur-head">
-          <span class="shiur-title">${title}</span>
-          <button class="play-btn" aria-label="${st.playing ? 'השהה' : 'נגן'}">${st.playing ? ICON_PAUSE : ICON_PLAY}</button>
+          <button class="play-btn" aria-label="${st.playing ? 'השהה' : 'נגן'}">${st.playing ? iconPause(20) : iconPlay(20)}</button>
+          <div class="shiur-gr"><div class="shiur-title">${shiurTitle(s, key, withName)}</div><div class="shiur-meta">${st.meta}</div></div>
+          <div class="shiur-acts">
+            <button class="icon-btn save-btn${st.saved ? ' on' : ''}" title="${st.saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי'}" aria-label="שמירה לרשימה שלי">${st.saved ? ICON_BM_ON : ICON_BM}</button>
+            <button class="icon-btn more-btn" title="אפשרויות נוספות" aria-label="אפשרויות נוספות" aria-haspopup="menu">${ICON_MORE}</button>
+          </div>
         </div>
-        <div class="shiur-sub">
-          <span class="shiur-meta">${st.meta}</span>
-          <span class="shiur-actions">
-            ${hasSummary ? `<a class="text-link" href="${pdfUrl}" target="_blank" rel="noopener" title="הורד סיכום השיעור">${ICON_DOWNLOAD} סיכום</a>` : ''}
-            <button class="save-btn${st.saved ? ' on' : ''}" title="${st.saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי'}" aria-label="שמירה לרשימה שלי">${st.saved ? ICON_BM_ON : ICON_BM}</button>
-            <button class="more-btn" title="אפשרויות נוספות" aria-label="אפשרויות נוספות" aria-haspopup="menu">${ICON_MORE}</button>
-          </span>
-        </div>
+        <div class="shiur-foot">${pdfUrl ? `<a class="summary-link" href="${pdfUrl}" target="_blank" rel="noopener" title="הורד סיכום השיעור">${ICON_DOC} סיכום</a>` : ''}</div>
         <div class="shiur-bar"><i style="width:${st.pct}%"></i></div>
       </div>`;
   }
 
+  // ====== דף פרשה ======
   function renderParasha(key){
-    headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
     const chumash = chumashOf(key);
-    const label = pairLabel[key] || key;
-    const shiurim = sortedShiurim(key);
-    const backLabel = chumash === 'מועדים' ? 'חזרה למועדים' : ('חזרה לחומש ' + chumash);
-    let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ ${backLabel}</button></div>
-      <h2 class="page-title">${itemLabel(key, label)}</h2>
-      <p class="page-sub">כל השיעורים, מהחדש לישן</p>`;
-    if (!shiurim.length){
-      html += `<div class="no-content">אין עדיין שיעורים ל${itemNounOf(key)}</div>`;
+    const all = sortedShiurim(key);
+    if (parashaFilter.key !== key) parashaFilter = { key, val:'all' };
+    const years = [...new Set(all.map(s => s.year))];
+    const hasIyun = all.some(s => s.isIyun);
+    const f = parashaFilter.val;
+    const shiurim = all.filter(s => f === 'all' || (f === 'iyun' ? s.isIyun : s.year === f));
+    let html = topbar('הארכיון · ' + chumashLabel(chumash)) + `<h2 class="ptitle">${keyLabel(key)}</h2>
+      <p class="psub">${all.length ? `${all.length} שיעורים${years.length > 1 ? ' · ' + years.length + ' שנים' : ''}` : ''}</p>`;
+    // סינון - רק כשיש באמת מה לסנן (יותר משנה אחת, או שיעורי עיון)
+    if (years.length > 1 || (hasIyun && all.length > 1)){
+      html += `<div class="chips"><button class="chip${f === 'all' ? ' on' : ''}" data-f="all">הכל</button>`;
+      for (const y of years) html += `<button class="chip${f === y ? ' on' : ''}" data-f="${y}">${yearDisplay(y)}</button>`;
+      if (hasIyun) html += `<button class="chip${f === 'iyun' ? ' on' : ''}" data-f="iyun">עיון</button>`;
+      html += '</div>';
     }
+    if (!all.length) html += `<div class="empty-box">אין עדיין שיעורים ל${itemNounOf(key)}</div>`;
     let marked = false;
     for (const s of shiurim){
       const hl = view.year && s.year === view.year;
@@ -1078,26 +1283,18 @@
       if (hl) marked = true;
     }
     app.innerHTML = html;
-    bindHomeBtn();
-    document.getElementById('backBtn').addEventListener('click', () => { view = { type:'chumash', name:chumash }; render(); });
     const target = document.getElementById('target-year');
-    if (target){
-      setTimeout(() => target.scrollIntoView({ behavior:'smooth', block:'center' }), 100);
-    }
+    if (target && f === 'all') setTimeout(() => target.scrollIntoView({ behavior:'smooth', block:'center' }), 100);
   }
 
-
-  function renderError(msg){
-    headerMeta.textContent = '';
-    app.innerHTML = `<div class="note">שגיאה בטעינת רשימת השיעורים.<br>נסו לרענן את הדף.</div>`;
+  function renderError(){
+    app.innerHTML = `<div class="page-top"><h2 class="ptitle">שגיאה</h2></div>
+      <div class="empty-box">שגיאה בטעינת רשימת השיעורים.<br>בדקו את החיבור לאינטרנט ונסו לרענן.</div>`;
   }
 
-  function scrollTop(){ window.scrollTo({ top:0, behavior:'smooth' }); }
+  function scrollTop(){ window.scrollTo({ top:0 }); }
 
-  // ====== חיפוש עם תפריט הצעות ======
-  const searchInput = document.getElementById('searchInput');
-  const suggestBox = document.getElementById('suggest');
-
+  // ====== חיפוש ======
   // האם q מתאים לתחילת מילה כלשהי בשם ("כי" -> "כי תשא", "מות" -> "אחרי מות")
   function wordPrefixMatch(name, q){
     if (!q) return false;
@@ -1119,7 +1316,7 @@
 
   // פירוש הקלט: קודם מנסים הכל כשם פרשה; אם אין התאמות והטוקן האחרון נראה כשנה - שם + שנה
   function interpretQuery(raw){
-    let tokens = raw.trim().split(/\s+/).filter(Boolean);
+    let tokens = raw.replace(/["'״׳]/g, '').trim().split(/\s+/).filter(Boolean);
     if (tokens[0] === 'פרשת' || tokens[0] === 'מועד') tokens = tokens.slice(1);
     if (!tokens.length) return null;
     const asName = tokens.join(' ');
@@ -1135,68 +1332,82 @@
     return { keys: [], year: null };
   }
 
-  function buildSuggestions(){
-    const raw = searchInput.value;
-    if (!raw.trim()){ suggestBox.hidden = true; suggestBox.innerHTML = ''; return; }
-    const res = interpretQuery(raw);
-    let html = '';
-    let shown = 0;
-    if (res && res.keys.length){
+  let lastQuery = '';
+  function renderSearch(){
+    app.innerHTML = `<div class="page-top"><h2 class="ptitle">חיפוש</h2><p class="psub">פרשה או מועד, אפשר גם עם שנה: נח תשפה</p></div>
+      <div class="search-box">${ICON_SEARCH}<input type="search" class="search-input" id="searchInput" placeholder="למשל: כי תבוא" autocomplete="off" enterkeyhint="search"></div>
+      <div id="searchResults"></div>`;
+    const input = document.getElementById('searchInput');
+    input.value = lastQuery;
+    input.addEventListener('input', () => { lastQuery = input.value; searchResults(); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const first = document.querySelector('#searchResults .prow');
+      if (first) first.click();
+    });
+    searchResults();
+    setTimeout(() => input.focus(), 50);
+  }
+
+  // תוצאות: בלי חיפוש - כל הדפים שיש בהם שיעורים, לפי סדר החומשים
+  function searchResults(){
+    const box = document.getElementById('searchResults');
+    const res = interpretQuery(lastQuery);
+    let rows = [];
+    if (!res){
+      for (const c of CHUMASHIM) for (const key of pageKeysOf(c)){
+        const n = (index[key] || []).length;
+        if (n) rows.push({ key, sub: chumashLabel(c.name), right: n + ' שיעורים' });
+      }
+    } else {
       for (const key of res.keys){
-        const label = pairLabel[key] || key;
+        const sub = chumashLabel(chumashOf(key));
         if (res.year){
-          // הצעה לכל שנה תואמת בדף הזה
-          const years = [...new Set(index[key].map(s => s.year))]
-            .filter(y => y.startsWith(res.year))
-            .sort((a,b) => yearValue(b) - yearValue(a));
-          for (const y of years){
-            if (shown >= 8) break;
-            shown++;
-            html += `<button data-key="${key}" data-year="${y}"><span>${itemLabel(key, label)}</span><span class="yr">${yearDisplay(y)}</span></button>`;
-          }
-        } else {
-          if (shown >= 8) break;
-          shown++;
-          const n = index[key].length;
-          html += `<button data-key="${key}"><span>${itemLabel(key, label)}</span><span class="yr">${n} שיעורים</span></button>`;
-        }
+          // שורה לכל שנה תואמת בדף הזה
+          [...new Set(index[key].map(s => s.year))].filter(y => y.startsWith(res.year))
+            .sort((a,b) => yearValue(b) - yearValue(a))
+            .forEach(y => rows.push({ key, year: y, sub, right: yearDisplay(y) }));
+        } else rows.push({ key, sub, right: index[key].length + ' שיעורים' });
       }
     }
-    if (!shown) html = `<div class="none">לא נמצאה התאמה</div>`;
-    suggestBox.innerHTML = html;
-    suggestBox.hidden = false;
-    // mousedown ולא click - כדי להקדים את סגירת התפריט ב-blur
-    suggestBox.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        openSuggestion(btn.dataset.key, btn.dataset.year || null);
-      });
-    });
+    if (!rows.length){ box.innerHTML = `<div class="empty-box">לא נמצאה התאמה</div>`; return; }
+    box.innerHTML = `<div class="plist">${rows.slice(0, 40).map(r => `<button class="prow" data-key="${r.key}"${r.year ? ` data-year="${r.year}"` : ''}>
+      <span><div class="prow-n">${keyLabel(r.key)}</div><div class="prow-s">${r.sub}</div></span>
+      <span class="prow-c">${r.right}${ICON_CHEV}</span></button>`).join('')}</div>`;
   }
 
-  function openSuggestion(key, year){
-    suggestBox.hidden = true;
-    view = { type:'parasha', key, year };
-    render();
-    scrollTop();
+  // ====== התקנת האפליקציה ======
+  // אנדרואיד/מחשב (כרום): הדפדפן מאפשר כפתור התקנה (beforeinstallprompt).
+  // אייפון: אין כפתור כזה - מציגים הסבר קצר ("שיתוף" ← "הוסף למסך הבית").
+  // לא מוצג כשכבר פתוחים כאפליקציה, או אחרי שסגרו את ההצעה.
+  let installEvt = null;
+  const INSTALL_KEY = 'parasha:installDismissed';
+  const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function installDismissed(){ try { return !!localStorage.getItem(INSTALL_KEY); } catch (e) { return false; } }
+  function installHtml(){
+    if (isStandalone() || installDismissed() || !(installEvt || isIOS)) return '';
+    const sub = installEvt ? 'גישה מהירה ממסך הבית, במסך מלא' : 'בספארי: כפתור השיתוף ⎋ ואז "הוסף למסך הבית"';
+    return `<div class="install"><img src="icons/icon-192.png" alt="">
+      <div class="install-gr"><div class="install-t">התקינו את האפליקציה</div><div class="install-s">${sub}</div></div>
+      ${installEvt ? '<button class="install-go" id="installGo">התקנה</button>' : ''}
+      <button class="install-x" id="installX" aria-label="סגור">${ICON_X}</button></div>`;
   }
-
-  searchInput.addEventListener('input', buildSuggestions);
-  searchInput.addEventListener('focus', buildSuggestions);
-  searchInput.addEventListener('blur', () => { setTimeout(() => { suggestBox.hidden = true; }, 150); });
-  searchInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter'){
-      e.preventDefault();
-      const first = suggestBox.querySelector('button');
-      if (first) openSuggestion(first.dataset.key, first.dataset.year || null);
-    }
-    if (e.key === 'Escape'){ suggestBox.hidden = true; }
-  });
+  function refreshInstall(){ const slot = document.getElementById('installSlot'); if (slot) slot.innerHTML = installHtml(); }
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; refreshInstall(); });
+  window.addEventListener('appinstalled', () => { installEvt = null; refreshInstall(); showToast('האפליקציה הותקנה'); });
+  function doInstall(){
+    if (!installEvt) return;
+    installEvt.prompt();
+    installEvt.userChoice.finally(() => { installEvt = null; refreshInstall(); });
+  }
+  function dismissInstall(){ try { localStorage.setItem(INSTALL_KEY, '1'); } catch (e) {} refreshInstall(); }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   // ====== טעינה ======
   function load(){
     if (R2_BASE.indexOf('PASTE_') === 0){
-      document.querySelector('.search-row').hidden = true;  // אין מה לחפש עדיין
       setupMode = true;
       view = { type:'shelf' }; render();
       return Promise.resolve(true);
@@ -1227,9 +1438,9 @@
           if (s){ (index[s.pageKey] = index[s.pageKey] || []).push(s); byPath[path] = s; }
           else unmatched.push(path);
         }
-        // בטעינה הראשונה (או אחרי שגיאה) התצוגה נקבעת לפי הכתובת - כך עובדים
-        // קישור ישיר לפרשה (?parasha=...&year=...) ורענון הדף בכל עומק ניווט
-        updateRecentBtn();
+        // התצוגה נקבעת לפי הכתובת - כך עובדים קישורים ישירים
+        // (?parasha=...&year=..., ?new=1, ?list=1) ורענון הדף בכל עומק ניווט
+        updateBadges();
         view = viewFromUrl();
         render();
         return true;

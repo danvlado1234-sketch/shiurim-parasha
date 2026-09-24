@@ -1,0 +1,19 @@
+{
+  "name": "שיעורי פרשת שבוע ומועדים",
+  "short_name": "שיעורי פרשה",
+  "description": "שיעורי פרשת השבוע ומועדי ישראל מפי הרה\"ג רבי יצחק ולדומירסקי שליט\"א",
+  "lang": "he",
+  "dir": "rtl",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f1e4",
+  "theme_color": "#1f4a33",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
