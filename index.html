@@ -18,7 +18,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <!-- אפליקציה: התקנה למסך הבית (manifest + sw.js), אייקון, צבע שורת המצב -->
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1f4a33">
+<meta name="theme-color" content="#0f1a14">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -29,306 +29,272 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* ====== עיצוב "מצב לילה": רקע כהה, "עטיפה" צבעונית לכל חומש, זהב להדגשה ====== */
   :root {
-    --paper:#f6f1e4; --card:#fffdf7; --ink:#231e17; --muted:#857a68; --line:#e6dcc3;
-    --accent:#1f4a33; /* ירוק עמוק - הצבע המבחין של אתר הפרשות */
-    --accent-soft:#2c5c42; --accent-dark:#173826; --brass:#a1782f; --gold:#d9b876; --cream:#f6ecd3;
-    --done:#2e7d4f;
-    --shadow-sm: 0 2px 8px rgba(35,30,23,.06);
-    --shadow-md: 0 8px 22px rgba(35,30,23,.12);
-    --tabs-h: 64px;     /* גובה סרגל הלשוניות בטלפון */
-    --mini-h: 0px;      /* גובה הנגן הקטן כשהוא פתוח (נקבע ע"י body.has-player) */
+    --bg:#0f1a14; --surface:#18251d; --surface2:#213128; --line:#2a3b31;
+    --text:#f1ead8; --muted:#8fa296; --muted2:#6f8377;
+    --gold:#d9b876; --gold-ink:#16241c; --done:#7fcf9f;
+    --ca:#2c6a4a; --cb:#173826;   /* צבעי החומש הנוכחי (משתנים לפי הדף/השיעור) */
+    --tabs-h: 66px;
+    --mini-h: 0px;
     --safe-b: env(safe-area-inset-bottom, 0px);
     --safe-t: env(safe-area-inset-top, 0px);
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   [hidden] { display:none !important; }
   /* בלי הגדלה (צביטה / הקשה כפולה) - התנהגות של אפליקציה ולא של דף אינטרנט */
-  html { background:var(--paper); touch-action:pan-x pan-y; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+  html { background:var(--bg); touch-action:pan-x pan-y; -webkit-text-size-adjust:100%; text-size-adjust:100%; color-scheme:dark; }
   body {
-    font-family:'Heebo',sans-serif; background:var(--paper); color:var(--ink);
+    font-family:'Heebo',sans-serif; background:var(--bg); color:var(--text);
     min-height:100vh; -webkit-tap-highlight-color:transparent;
     padding-bottom:calc(var(--tabs-h) + var(--mini-h) + var(--safe-b) + 24px);
   }
-  body.has-player { --mini-h: 68px; }
+  body.has-player { --mini-h: 66px; }
   button { font-family:inherit; color:inherit; }
-  .wrap { max-width:760px; margin:0 auto; }
-  #app { padding-top:var(--safe-t); }
+  a { color:inherit; }
+  .wrap { max-width:760px; margin:0 auto; position:relative; }
+  #app { padding-top:var(--safe-t); position:relative; }
   #app.fade-in { animation: fadeIn .22s ease both; }
   @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
   @media (prefers-reduced-motion: reduce) { #app.fade-in, .sheet, .toast { animation:none !important; transition:none !important; } }
-  :focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
+  :focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
 
-  /* ====== דף הבית: כותרת עם התמונה ====== */
-  .hero {
-    position:relative; height:calc(250px + var(--safe-t)); margin-top:calc(-1 * var(--safe-t));
-    border-radius:0 0 26px 26px; overflow:hidden;
-    background:url('bg-rabbi.jpg') 42% 30% / cover #2b3a30;
+  /* ====== עטיפה ====== */
+  .cover {
+    position:relative; overflow:hidden; flex-shrink:0; border-radius:12px; color:#fff;
+    display:flex; flex-direction:column; justify-content:flex-end; padding:10px;
+    background:linear-gradient(150deg, var(--ca), var(--cb));
   }
-  .hero::after { content:''; position:absolute; inset:0;
-    background:linear-gradient(180deg, rgba(15,28,20,.35), rgba(15,28,20,.5) 50%, rgba(20,40,28,.93)); }
-  .hero-in { position:absolute; inset:0; z-index:1; padding:0 20px 20px; display:flex; flex-direction:column; justify-content:flex-end; color:var(--cream); }
-  .hero h1 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(28px,8vw,36px); line-height:1.12; }
-  .hero .by { font-size:14px; opacity:.88; margin-top:6px; }
-  .hero .count { font-size:12.5px; opacity:.7; margin-top:3px; }
+  .cover::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 80% 0%, rgba(255,255,255,.22), transparent 58%); }
+  .cover::after { content:''; position:absolute; top:10px; left:10px; width:16px; height:16px; border:1.5px solid rgba(255,255,255,.5); transform:rotate(45deg); }
+  .cover b { position:relative; font-family:'Frank Ruhl Libre',serif; font-weight:900; line-height:1.02; font-size:var(--fs, 22px); text-shadow:0 2px 8px rgba(0,0,0,.25); }
+  .cover i { position:relative; font-style:normal; font-size:10.5px; opacity:.82; margin-top:3px; }
+  .cover.plain { padding:0; }
+  .cover.plain::after, .cover.sm::after { display:none; }
+  .cover.dim { filter:saturate(.3) brightness(.9); opacity:.55; }
 
-  .search-fake {
-    display:flex; align-items:center; gap:9px; width:calc(100% - 32px); margin:14px 16px 0;
-    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 15px;
-    font-size:15px; color:var(--muted); text-align:right; cursor:pointer; box-shadow:var(--shadow-sm);
-  }
+  /* ====== דף הבית ====== */
+  .home-top { display:flex; justify-content:space-between; align-items:center; padding:16px 18px 0; }
+  .greet { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:27px; line-height:1.1; }
+  .greet-s { font-size:12.5px; color:var(--muted); margin-top:3px; }
+  .avatar { width:40px; height:40px; border-radius:50%; flex-shrink:0; border:2px solid var(--gold); background:url('bg-rabbi.jpg') 55% 30% / cover; }
+  .pills { display:flex; gap:7px; padding:14px 18px 0; overflow-x:auto; scrollbar-width:none; }
+  .pills::-webkit-scrollbar { display:none; }
+  .pill { flex-shrink:0; font-size:13px; padding:7px 15px; border-radius:18px; border:0; background:var(--surface2); color:#d8cfb8; font-weight:600; cursor:pointer; }
+  .pill.on { background:var(--gold); color:var(--gold-ink); }
 
-  .sec { display:flex; justify-content:space-between; align-items:baseline; margin:22px 16px 10px; }
-  .sec h3 { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:20px; }
-  .sec .link { font-size:13.5px; color:var(--accent); font-weight:600; background:none; border:0; cursor:pointer; }
-
-  /* המשך האזנה */
   .cont {
-    display:flex; gap:12px; align-items:center; margin:0 16px; padding:13px 14px;
-    background:var(--accent); color:var(--cream); border-radius:16px; box-shadow:var(--shadow-md); cursor:pointer;
+    display:block; position:relative; margin:16px 18px 0; height:176px; border-radius:18px; overflow:hidden; cursor:pointer;
+    background:url('bg-rabbi.jpg') 42% 30% / cover #203027;
   }
-  .cont-th { width:56px; height:56px; border-radius:12px; flex-shrink:0; background:url('bg-rabbi.jpg') 55% 35% / cover; }
-  .cont-gr { flex:1; min-width:0; }
-  .cont-t { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:17px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .cont .shiur-meta { color:rgba(246,236,211,.8); font-size:12.5px; margin-top:2px; }
-  .cont .shiur-bar { height:3px; background:rgba(255,255,255,.2); border-radius:2px; margin-top:8px; overflow:hidden; }
+  .cont::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, rgba(15,26,20,.12), rgba(15,26,20,.88) 68%); }
+  .cont-in { position:absolute; z-index:1; right:16px; top:16px; bottom:16px; width:64%; display:flex; flex-direction:column; justify-content:space-between; }
+  .cont-tag { font-size:11px; font-weight:800; color:var(--gold); letter-spacing:.5px; }
+  .cont-t { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:22px; line-height:1.15; margin-top:3px; }
+  .cont .shiur-meta { font-size:12px; color:rgba(241,234,216,.78); margin-top:3px; }
+  .cont .shiur-bar { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgba(255,255,255,.16); z-index:1; }
   .cont .shiur-bar i { background:var(--gold); }
+  .cont .play-btn { width:44px; height:44px; background:var(--gold); color:var(--gold-ink); }
 
-  /* חדש השבוע - שורת כרטיסים לגלילה הצידה */
-  .tiles { display:flex; gap:10px; padding:2px 16px 6px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
-  .tiles::-webkit-scrollbar { display:none; }
-  .tile {
-    flex:0 0 146px; scroll-snap-align:start; position:relative; cursor:pointer;
-    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 12px 12px; box-shadow:var(--shadow-sm);
-  }
-  .tile .tag { display:inline-block; font-size:11px; font-weight:700; color:var(--brass); background:#f5ead2; border-radius:6px; padding:1px 7px; }
-  .tile.is-done .tag { color:var(--done); background:#e3efe6; }
-  .tile-t { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:16.5px; margin-top:7px; line-height:1.2; }
-  .tile-s { font-size:12px; color:var(--muted); margin-top:3px; }
-  .tile .play-btn { width:34px; height:34px; margin-top:10px; }
+  .sec { display:flex; justify-content:space-between; align-items:baseline; margin:24px 18px 11px; }
+  .sec h3 { font-weight:800; font-size:18.5px; }
+  .sec .link { font-size:13px; color:var(--muted); font-weight:600; background:none; border:0; cursor:pointer; }
 
-  /* הארכיון - רשת החומשים */
-  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin:0 16px; }
-  .vol {
-    display:flex; flex-direction:column; align-items:center; gap:2px; padding:14px 6px 12px; cursor:pointer;
-    background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow-sm);
-    transition:transform .15s ease, box-shadow .15s ease;
-  }
-  .vol:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
-  .vol .dot { width:24px; height:3px; border-radius:2px; background:var(--accent); margin-bottom:8px; }
-  .vol-n { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:17px; }
+  .shelf { display:flex; gap:12px; padding:0 18px 4px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .shelf::-webkit-scrollbar { display:none; }
+  .tile { flex:0 0 136px; scroll-snap-align:start; cursor:pointer; position:relative; }
+  .tile .cover { width:136px; height:136px; }
+  .tile .play-btn { position:absolute; top:94px; left:8px; width:34px; height:34px; background:var(--gold); color:var(--gold-ink); box-shadow:0 4px 12px rgba(0,0,0,.35); }
+  .tile-t { font-weight:700; font-size:14px; margin-top:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tile-s { font-size:12px; color:var(--muted); margin-top:1px; }
+  .tile.is-done .tile-s { color:var(--done); }
+
+  .arch { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 18px; }
+  .vol { all:unset; cursor:pointer; display:flex; align-items:center; gap:11px; height:58px; overflow:hidden; border-radius:10px; background:var(--surface); }
+  .vol:hover { background:var(--surface2); }
+  .vol .cover { width:58px; height:58px; border-radius:0; }
+  .vol-n { font-weight:700; font-size:14.5px; }
   .vol-c { font-size:11.5px; color:var(--muted); }
-  .vol.empty .dot { background:var(--line); }
-  .vol.empty .vol-n { color:#b3a992; }
+  .vol.empty { opacity:.5; }
 
-  /* התקנת האפליקציה */
-  .install {
-    display:flex; align-items:center; gap:12px; margin:14px 16px 0; padding:12px 14px;
-    background:#fbf3df; border:1px solid #ecd9ad; border-radius:14px;
-  }
+  .install { display:flex; align-items:center; gap:12px; margin:16px 18px 0; padding:12px 14px; background:var(--surface); border:1px solid var(--line); border-radius:14px; }
   .install img { width:42px; height:42px; border-radius:10px; flex-shrink:0; }
   .install-gr { flex:1; min-width:0; }
   .install-t { font-weight:700; font-size:14.5px; }
   .install-s { font-size:12.5px; color:var(--muted); margin-top:1px; line-height:1.4; }
-  .install-go { background:var(--accent); color:#fff; border:0; border-radius:18px; padding:7px 14px; font-weight:600; font-size:13.5px; cursor:pointer; flex-shrink:0; }
+  .install-go { background:var(--gold); color:var(--gold-ink); border:0; border-radius:18px; padding:7px 14px; font-weight:700; font-size:13.5px; cursor:pointer; flex-shrink:0; }
   .install-x { background:none; border:0; color:var(--muted); cursor:pointer; padding:4px; flex-shrink:0; display:inline-flex; }
 
   /* ====== דפים פנימיים ====== */
-  .topbar { display:flex; align-items:center; gap:10px; padding:12px 14px 6px; }
-  .back-btn {
-    width:38px; height:38px; border-radius:50%; flex-shrink:0; cursor:pointer;
-    display:inline-flex; align-items:center; justify-content:center;
-    background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow-sm);
-  }
-  .crumb { font-size:13px; color:var(--muted); }
-  .ptitle { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(28px,8vw,34px); padding:4px 16px 0; line-height:1.15; }
-  .psub { font-size:13.5px; color:var(--muted); padding:3px 16px 14px; }
+  .tint { position:absolute; top:0; left:0; right:0; height:400px; pointer-events:none;
+    background:linear-gradient(180deg, var(--ca) 0%, color-mix(in srgb, var(--cb) 70%, var(--bg)) 45%, var(--bg) 100%); opacity:.9; }
+  .page { position:relative; }
+  .topbar { display:flex; align-items:center; gap:10px; padding:12px 12px 4px; }
+  .back-btn { all:unset; cursor:pointer; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:rgba(0,0,0,.22); }
+  .back-btn:hover { background:rgba(0,0,0,.35); }
+  .crumb { font-size:13px; color:rgba(241,234,216,.8); }
+  .big-cover { width:min(58vw, 210px); height:min(58vw, 210px); margin:6px auto 0; box-shadow:0 18px 44px rgba(0,0,0,.45); --fs:34px; }
+  .big-cover::after { width:20px; height:20px; top:14px; left:14px; }
+  .ptitle { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(26px,7.5vw,32px); padding:16px 18px 0; line-height:1.15; }
+  .psub { font-size:13px; color:#a9bdb1; padding:4px 18px 0; }
   .page-top { padding-top:18px; }
+  .page-top .psub { padding-bottom:6px; }
+  .ctl { display:flex; justify-content:space-between; align-items:center; padding:14px 18px 8px; }
+  .ctl-l { display:flex; gap:6px; }
+  .ctl .icon-btn { width:42px; height:42px; color:#c9d6cd; }
+  .big-play { width:56px; height:56px; border-radius:50%; border:0; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+    background:var(--gold); color:var(--gold-ink); box-shadow:0 8px 20px rgba(0,0,0,.35); transition:transform .12s ease; }
+  .big-play:hover { transform:scale(1.05); }
 
-  .chips { display:flex; gap:7px; padding:0 16px 14px; overflow-x:auto; scrollbar-width:none; }
+  .chips { display:flex; gap:7px; padding:6px 18px 8px; overflow-x:auto; scrollbar-width:none; }
   .chips::-webkit-scrollbar { display:none; }
-  .chip { flex-shrink:0; font-size:13px; padding:6px 13px; border-radius:16px; border:1px solid var(--line); background:var(--card); cursor:pointer; }
-  .chip.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .chip { flex-shrink:0; font-size:13px; padding:6px 13px; border-radius:16px; border:0; background:var(--surface2); color:#d8cfb8; font-weight:600; cursor:pointer; }
+  .chip.on { background:var(--text); color:var(--bg); }
 
-  .sub-h { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:17px; margin:18px 16px 10px; color:var(--ink); }
-  .list-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:18px 16px 10px; }
+  .sub-h { font-weight:800; font-size:17px; margin:22px 18px 8px; }
+  .list-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:22px 18px 8px; }
   .list-head .sub-h { margin:0; }
-  .pill-btn {
-    display:inline-flex; align-items:center; gap:6px; cursor:pointer; flex-shrink:0;
-    background:var(--accent); color:#fff; border:0; border-radius:18px; padding:7px 14px; font-weight:600; font-size:13.5px;
-  }
+  .pill-btn { display:inline-flex; align-items:center; gap:6px; cursor:pointer; flex-shrink:0; background:var(--gold); color:var(--gold-ink); border:0; border-radius:18px; padding:7px 14px; font-weight:700; font-size:13.5px; }
 
-  /* שורות פרשה (בדף חומש ובחיפוש) */
-  .plist { display:flex; flex-direction:column; gap:8px; margin:0 16px; }
-  .prow {
-    display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; cursor:pointer; text-align:right;
-    background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; box-shadow:var(--shadow-sm);
-    transition:transform .15s ease, box-shadow .15s ease;
-  }
-  .prow:hover { transform:translateY(-1px); box-shadow:var(--shadow-md); }
-  .prow-n { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:18px; }
+  /* שורות פרשה/מועד (דף חומש, חיפוש, מועדים) */
+  .plist { display:flex; flex-direction:column; gap:2px; margin:6px 8px 0; }
+  .prow { all:unset; cursor:pointer; display:flex; align-items:center; gap:12px; padding:8px 10px; border-radius:10px; }
+  .prow:hover { background:rgba(255,255,255,.05); }
+  .prow .cover { width:50px; height:50px; border-radius:8px; }
+  .prow-gr { flex:1; min-width:0; }
+  .prow-n { font-weight:700; font-size:15.5px; }
   .prow-s { font-size:12px; color:var(--muted); margin-top:1px; }
-  .prow-c { font-size:12.5px; color:var(--muted); flex-shrink:0; display:inline-flex; align-items:center; gap:6px; }
-  .prow.empty { box-shadow:none; background:transparent; }
-  .prow.empty .prow-n { color:#b3a992; }
+  .prow-c { color:var(--muted2); display:inline-flex; }
+  .prow.empty { opacity:.45; }
 
-  /* ====== כרטיס שיעור ====== */
-  .shiur-row {
-    margin:0 16px 10px; background:var(--card); border:1px solid var(--line); border-radius:16px;
-    padding:13px 14px 0; overflow:hidden; box-shadow:var(--shadow-sm); transition:box-shadow .15s ease, border-color .15s ease;
-  }
-  .shiur-row.playing { border-color:var(--accent); box-shadow:0 0 0 1.5px var(--accent), var(--shadow-sm); }
-  .shiur-row.hl { border-color:var(--brass); box-shadow:0 0 0 2px var(--brass); }
-  .shiur-head { display:flex; align-items:center; gap:12px; }
+  /* ====== שורת שיעור (כמו שיר באלבום) ====== */
+  .shiur-row { display:flex; align-items:center; gap:12px; padding:10px 18px; cursor:pointer; position:relative; }
+  .shiur-row:hover { background:rgba(255,255,255,.04); }
+  .shiur-row.hl { background:rgba(217,184,118,.1); }
+  .shiur-row .cover { width:50px; height:50px; border-radius:8px; }
   .shiur-gr { flex:1; min-width:0; }
-  .shiur-title { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:18px; line-height:1.25; }
-  .shiur-meta { font-size:12.5px; color:var(--muted); margin-top:2px; min-height:1em; }
+  .shiur-title { font-weight:700; font-size:15.5px; line-height:1.3; }
+  .shiur-row.playing .shiur-title { color:var(--gold); }
+  .shiur-sub { display:flex; align-items:center; gap:8px; margin-top:2px; flex-wrap:wrap; }
+  .shiur-meta { font-size:12.5px; color:var(--muted); }
   .shiur-meta .done { color:var(--done); font-weight:700; }
-  .shiur-acts { display:flex; align-items:center; gap:2px; flex-shrink:0; }
-  .shiur-foot { display:flex; gap:8px; margin-top:10px; }
-  .shiur-foot:empty { display:none; }
-  .shiur-bar { height:3px; background:#efe6cf; margin:12px -14px 0; }
-  .shiur-bar i { display:block; height:100%; width:0; background:var(--accent); transition:width .3s linear; }
-  .shiur-row.is-done .shiur-bar i { background:#a9c3b1; }
-  .summary-link {
-    display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--accent); text-decoration:none;
-    border:1px solid var(--line); background:#fbf6ea; border-radius:14px; padding:4px 11px;
-  }
-  .summary-link:hover { border-color:var(--accent); }
+  .summary-link { font-size:12px; color:var(--gold); text-decoration:none; border:1px solid rgba(217,184,118,.4); border-radius:10px; padding:1px 8px; display:inline-flex; align-items:center; gap:4px; }
+  .summary-link:hover { background:rgba(217,184,118,.12); }
+  .shiur-bar { height:3px; background:rgba(255,255,255,.1); border-radius:2px; margin-top:7px; max-width:220px; overflow:hidden; }
+  .shiur-bar i { display:block; height:100%; width:0; background:var(--gold); transition:width .3s linear; }
+  .shiur-row:not(.started) .shiur-bar { display:none; }
+  .shiur-row.is-done .shiur-bar i { background:var(--done); opacity:.6; }
+  .shiur-acts { display:flex; align-items:center; flex-shrink:0; }
 
-  .play-btn {
-    width:46px; height:46px; border-radius:50%; border:0; cursor:pointer; flex-shrink:0;
-    display:inline-flex; align-items:center; justify-content:center;
-    background:var(--accent); color:#fff; transition:transform .12s ease, background .15s ease;
-  }
-  .play-btn:hover { background:var(--accent-soft); transform:scale(1.05); }
-  .shiur-row.is-done:not(.playing) .play-btn { background:#e9e1cb; color:var(--accent); }
-  .cont .play-btn { background:var(--cream); color:var(--accent); }
-  .icon-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; color:var(--muted); }
-  .icon-btn:hover, .icon-btn[aria-expanded="true"] { color:var(--accent); background:rgba(31,74,51,.07); }
-  .icon-btn:focus-visible { outline:2px solid var(--brass); }
-  .save-btn.on { color:var(--brass); }
+  .play-btn { width:40px; height:40px; border-radius:50%; border:0; cursor:pointer; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;
+    background:var(--surface2); color:var(--text); transition:transform .12s ease, background .15s ease; }
+  .play-btn:hover { transform:scale(1.06); }
+  .shiur-row.playing .play-btn { background:var(--gold); color:var(--gold-ink); }
+  .icon-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; color:var(--muted); }
+  .icon-btn:hover, .icon-btn[aria-expanded="true"] { color:var(--text); background:rgba(255,255,255,.07); }
+  .icon-btn:focus-visible { outline:2px solid var(--gold); }
+  .save-btn.on { color:var(--gold); }
 
-  .empty-box { margin:6px 16px; padding:26px 20px; text-align:center; color:var(--muted); font-size:15px; line-height:1.7;
-    background:var(--card); border:1px dashed var(--line); border-radius:16px; }
+  .empty-box { margin:10px 18px; padding:26px 20px; text-align:center; color:var(--muted); font-size:15px; line-height:1.7; background:var(--surface); border-radius:16px; }
   .empty-box svg { vertical-align:-4px; }
 
   /* ====== חיפוש ====== */
-  .search-box { position:relative; margin:0 16px 14px; }
+  .search-box { position:relative; margin:12px 18px 10px; }
   .search-box svg { position:absolute; top:50%; right:15px; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
-  .search-input {
-    width:100%; font-family:'Heebo',sans-serif; font-size:16px; padding:14px 44px 14px 16px;
-    border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--ink); box-shadow:var(--shadow-sm);
-  }
-  .search-input:focus { outline:2px solid var(--accent); outline-offset:0; border-color:var(--accent); }
+  .search-input { width:100%; font-family:'Heebo',sans-serif; font-size:16px; padding:14px 44px 14px 16px; border:0; border-radius:12px; background:var(--text); color:var(--bg); }
+  .search-input::placeholder { color:#6d6a60; }
+  .search-input:focus { outline:2px solid var(--gold); outline-offset:1px; }
 
   /* ====== תפריט ⋮ ====== */
-  .menu {
-    position:absolute; z-index:45; min-width:210px; padding:6px 0;
-    background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:0 14px 34px rgba(35,30,23,.22);
-  }
-  .menu a, .menu button {
-    display:flex; align-items:center; gap:10px; width:100%; padding:11px 16px;
-    font-size:15px; color:var(--ink); text-decoration:none; text-align:right; background:none; border:0; cursor:pointer;
-  }
-  .menu a:hover, .menu button:hover, .menu a:focus-visible, .menu button:focus-visible { background:rgba(31,74,51,.07); outline:none; }
-  .menu svg { color:var(--accent); flex-shrink:0; }
+  .menu { position:absolute; z-index:45; min-width:215px; padding:6px 0; background:#26382e; border-radius:12px; box-shadow:0 16px 36px rgba(0,0,0,.5); }
+  .menu a, .menu button { display:flex; align-items:center; gap:11px; width:100%; padding:12px 16px; font-size:15px; color:var(--text); text-decoration:none; text-align:right; background:none; border:0; cursor:pointer; }
+  .menu a:hover, .menu button:hover, .menu a:focus-visible, .menu button:focus-visible { background:rgba(255,255,255,.07); outline:none; }
+  .menu svg { color:var(--gold); flex-shrink:0; }
 
-  /* ====== סרגל לשוניות ====== */
+  /* ====== לשוניות ====== */
   .tabs {
     position:fixed; left:0; right:0; bottom:0; z-index:30;
     height:calc(var(--tabs-h) + var(--safe-b)); padding-bottom:var(--safe-b);
     display:flex; justify-content:space-around; align-items:center;
-    background:rgba(255,253,247,.96); border-top:1px solid var(--line);
-    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    background:linear-gradient(180deg, rgba(15,26,20,.6), rgba(15,26,20,.97) 40%);
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   }
-  .tab { all:unset; cursor:pointer; position:relative; display:flex; flex-direction:column; align-items:center; gap:3px;
-    font-size:11.5px; font-weight:600; color:var(--muted); padding:6px 12px; border-radius:12px; }
-  .tab.on { color:var(--accent); }
-  .tab:focus-visible { outline:2px solid var(--brass); }
-  .badge { position:absolute; top:0; left:4px; min-width:17px; height:17px; padding:0 5px; border-radius:9px;
-    background:var(--brass); color:#fff; font-size:10.5px; font-weight:700; line-height:17px; text-align:center; }
+  .tab { all:unset; cursor:pointer; position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:11.5px; font-weight:600; color:var(--muted2); padding:6px 12px; border-radius:12px; }
+  .tab.on { color:var(--text); }
+  .tab:focus-visible { outline:2px solid var(--gold); }
+  .badge { position:absolute; top:0; left:4px; min-width:17px; height:17px; padding:0 5px; border-radius:9px; background:var(--gold); color:var(--gold-ink); font-size:10.5px; font-weight:800; line-height:17px; text-align:center; }
 
-  /* ====== נגן קטן ====== */
+  /* ====== נגן קטן (בצבע החומש של השיעור) ====== */
   .mini {
-    position:fixed; left:10px; right:10px; z-index:35; bottom:calc(var(--tabs-h) + var(--safe-b) + 8px);
-    height:60px; display:flex; align-items:center; gap:4px; padding:0 8px 0 6px; overflow:hidden;
-    background:var(--accent); color:var(--cream); border-radius:14px; box-shadow:0 10px 26px rgba(0,0,0,.28);
+    position:fixed; left:8px; right:8px; z-index:35; bottom:calc(var(--tabs-h) + var(--safe-b) + 6px);
+    height:58px; display:flex; align-items:center; gap:2px; padding:0 6px 0 4px; overflow:hidden;
+    background:color-mix(in srgb, var(--cb) 75%, #000); color:var(--text); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.4);
   }
-  .mini-open { all:unset; cursor:pointer; flex:1; min-width:0; display:flex; align-items:center; gap:10px; padding:6px; }
-  .mini-th { width:40px; height:40px; border-radius:9px; flex-shrink:0; background:url('bg-rabbi.jpg') 55% 35% / cover; }
+  .mini-open { all:unset; cursor:pointer; flex:1; min-width:0; display:flex; align-items:center; gap:10px; padding:5px; }
+  .mini .cover { width:42px; height:42px; border-radius:6px; }
   .mini-gr { min-width:0; display:flex; flex-direction:column; }
-  .mini-t { font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .mini-s { font-size:11.5px; opacity:.75; font-variant-numeric:tabular-nums; }
+  .mini-t { font-weight:700; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mini-s { font-size:11.5px; opacity:.72; font-variant-numeric:tabular-nums; }
   .mini-btn { all:unset; cursor:pointer; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
   .mini-btn:hover { background:rgba(255,255,255,.1); }
-  .mini-prog { position:absolute; bottom:0; right:0; left:0; height:3px; background:rgba(255,255,255,.16); }
-  .mini-prog i { position:absolute; top:0; bottom:0; right:0; width:0; background:var(--gold); }
+  .mini-prog { position:absolute; bottom:0; right:8px; left:8px; height:2px; background:rgba(255,255,255,.2); }
+  .mini-prog i { position:absolute; top:0; bottom:0; right:0; width:0; background:var(--text); }
 
   /* ====== נגן מלא ====== */
-  .sheet {
-    position:fixed; inset:0; z-index:50; color:var(--cream);
-    background:linear-gradient(180deg,#265339,#173826 70%);
-    display:flex; justify-content:center; overflow-y:auto;
-    animation:sheetUp .28s cubic-bezier(.22,.8,.25,1) both;
-  }
+  .sheet { position:fixed; inset:0; z-index:50; color:var(--text); background:linear-gradient(180deg, var(--ca), color-mix(in srgb, var(--cb) 55%, var(--bg)) 55%, var(--bg));
+    display:flex; justify-content:center; overflow-y:auto; animation:sheetUp .28s cubic-bezier(.22,.8,.25,1) both; }
   @keyframes sheetUp { from { transform:translateY(100%); } to { transform:none; } }
   .sheet-in { width:100%; max-width:440px; padding:calc(10px + var(--safe-t)) 24px calc(24px + var(--safe-b)); display:flex; flex-direction:column; }
   .sheet-top { display:flex; justify-content:space-between; align-items:center; font-size:13px; opacity:.9; margin-bottom:18px; }
   .sheet-top button { all:unset; cursor:pointer; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; }
   .sheet-top button:hover { background:rgba(255,255,255,.1); }
-  .sheet-art { width:100%; aspect-ratio:1; max-height:44vh; border-radius:20px; position:relative; overflow:hidden; flex-shrink:0;
-    background:url('bg-rabbi.jpg') 55% 32% / cover; box-shadow:0 20px 44px rgba(0,0,0,.35); }
-  .sheet-art::after { content:''; position:absolute; inset:0; background:linear-gradient(180deg, transparent 55%, rgba(10,22,15,.75)); }
-  .sheet-art span { position:absolute; bottom:14px; right:16px; z-index:1; font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:15px; color:var(--gold); }
-  .sheet-title { all:unset; cursor:pointer; display:block; font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:26px; margin-top:22px; line-height:1.2; }
+  .sheet-art { width:100%; aspect-ratio:1; max-height:44vh; max-width:44vh; margin:0 auto; border-radius:16px; box-shadow:0 22px 50px rgba(0,0,0,.45); --fs:clamp(34px,11vw,52px); padding:18px; }
+  .sheet-art::after { width:22px; height:22px; top:18px; left:18px; }
+  .sheet-title { all:unset; cursor:pointer; display:block; font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:25px; margin-top:24px; line-height:1.2; }
   .sheet-title:hover { text-decoration:underline; text-underline-offset:4px; }
-  .sheet-sub { font-size:14px; opacity:.75; margin-top:4px; }
-  .sheet-seek { width:100%; margin-top:22px; accent-color:var(--gold); cursor:pointer; height:22px; }
-  .sheet-times { display:flex; justify-content:space-between; font-size:12px; opacity:.72; font-variant-numeric:tabular-nums; }
+  .sheet-sub { font-size:14px; opacity:.72; margin-top:4px; }
+  .sheet-seek { width:100%; margin-top:20px; accent-color:var(--text); cursor:pointer; height:22px; }
+  .sheet-times { display:flex; justify-content:space-between; font-size:12px; opacity:.7; font-variant-numeric:tabular-nums; }
   .sheet-times span { direction:ltr; }
-  .sheet-ctrl { display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding:0 10px; }
+  .sheet-ctrl { display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding:0 10px; }
   .sheet-ctrl button { all:unset; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; }
   .sheet-ctrl .skip { width:56px; height:56px; }
   .sheet-ctrl .skip:hover { background:rgba(255,255,255,.08); }
-  .sheet-ctrl .big { width:74px; height:74px; background:var(--cream); color:var(--accent); box-shadow:0 8px 20px rgba(0,0,0,.25); }
-  .sheet-bot { display:flex; justify-content:space-around; margin-top:26px; }
-  .sheet-bot > * { all:unset; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:12px; opacity:.9; padding:6px 8px; border-radius:10px; min-width:54px; }
+  .sheet-ctrl .big { width:72px; height:72px; background:var(--text); color:var(--bg); box-shadow:0 8px 20px rgba(0,0,0,.3); }
+  .sheet-bot { display:flex; justify-content:space-around; margin-top:24px; }
+  .sheet-bot > * { all:unset; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:12px; opacity:.88; padding:6px 8px; border-radius:10px; min-width:54px; }
   .sheet-bot > *:hover { background:rgba(255,255,255,.08); opacity:1; }
   .sheet-bot > [hidden] { display:none; }
-  .sheet-bot .spd { border:1.5px solid rgba(246,236,211,.6); border-radius:10px; padding:1px 8px; font-weight:700; font-size:13px; direction:ltr; }
+  .sheet-bot .spd { border:1.5px solid rgba(241,234,216,.6); border-radius:10px; padding:1px 8px; font-weight:700; font-size:13px; direction:ltr; }
   .sheet-bot .on { color:var(--gold); }
   .sheet :focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
 
   .toast {
     position:fixed; left:50%; bottom:calc(var(--tabs-h) + var(--mini-h) + var(--safe-b) + 18px);
     transform:translateX(-50%) translateY(12px); z-index:60;
-    background:var(--ink); color:var(--cream); padding:10px 20px; border-radius:22px;
-    font-size:14px; font-weight:600; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
-    box-shadow:0 10px 24px rgba(0,0,0,.28); max-width:calc(100vw - 40px); text-align:center;
+    background:var(--text); color:var(--bg); padding:10px 20px; border-radius:22px;
+    font-size:14px; font-weight:700; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
+    box-shadow:0 10px 24px rgba(0,0,0,.4); max-width:calc(100vw - 40px); text-align:center;
   }
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-  /* ====== מחשב: הלשוניות עוברות למעלה, התוכן ממורכז ====== */
+  /* ====== מחשב: הלשוניות למעלה, התוכן ממורכז ====== */
   @media (min-width: 900px) {
     :root { --tabs-h: 0px; }
     body { padding-bottom:calc(var(--mini-h) + 40px); }
-    .tabs {
-      position:sticky; top:0; bottom:auto; height:auto; padding:10px 0; justify-content:center; gap:8px;
-      border-top:0; border-bottom:1px solid var(--line);
-    }
+    .tabs { position:sticky; top:0; bottom:auto; height:auto; padding:10px 0; justify-content:center; gap:8px; background:rgba(15,26,20,.92); border-bottom:1px solid var(--line); }
     .tab { flex-direction:row; gap:8px; font-size:14.5px; padding:9px 18px; }
-    .tab.on { background:rgba(31,74,51,.08); }
+    .tab.on { background:var(--surface2); }
     .tab svg { width:20px; height:20px; }
     .badge { position:static; }
-    .hero { margin:18px 16px 0; border-radius:22px; height:300px; }
-    .hero h1 br { display:none; }
     .mini { left:50%; right:auto; width:720px; transform:translateX(-50%); bottom:16px; }
-    .sheet { background:rgba(12,24,17,.55); align-items:center; animation:fadeIn .2s ease both; }
-    .sheet-in { background:linear-gradient(180deg,#265339,#173826 70%); border-radius:24px; margin:20px; padding:16px 28px 26px; box-shadow:0 30px 60px rgba(0,0,0,.4); }
-    .sheet-art { max-height:320px; }
-    .grid { grid-template-columns:repeat(6,1fr); }
-    .tiles { flex-wrap:wrap; overflow:visible; }
+    .sheet { background:rgba(5,10,7,.6); align-items:center; animation:fadeIn .2s ease both; }
+    .sheet-in { background:linear-gradient(180deg, var(--ca), color-mix(in srgb, var(--cb) 55%, var(--bg)) 55%, var(--bg)); border-radius:24px; margin:20px; padding:16px 28px 26px; box-shadow:0 30px 60px rgba(0,0,0,.5); }
+    .sheet-art { max-height:300px; max-width:300px; }
+    .arch { grid-template-columns:1fr 1fr 1fr; }
+    .tint { left:calc(50% - 50vw); right:calc(50% - 50vw); }
+    html { overflow-x:clip; }  /* clip ולא hidden - כדי לא לשבור את הלשוניות הדביקות */
+    .shelf { flex-wrap:wrap; overflow:visible; }
   }
 </style>
 </head>
@@ -347,7 +313,7 @@
 
 <div class="mini" id="mini" hidden>
   <button class="mini-open" id="miniOpen" aria-label="פתח את הנגן">
-    <span class="mini-th"></span>
+    <span id="miniCover"></span>
     <span class="mini-gr"><span class="mini-t" id="miniTitle"></span><span class="mini-s" id="miniTime">0:00</span></span>
   </button>
   <button class="mini-btn" id="miniBack" aria-label="15 שניות אחורה"></button>
@@ -362,7 +328,7 @@
       <span id="sheetSrc">מתנגן עכשיו</span>
       <button id="sheetClose" aria-label="עצור וסגור את הנגן"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     </div>
-    <div class="sheet-art"><span>שיעורי פרשת שבוע ומועדים</span></div>
+    <div id="sheetArt"></div>
     <button class="sheet-title" id="sheetTitle" title="לדף השיעור"></button>
     <div class="sheet-sub" id="sheetSub"></div>
     <input type="range" class="sheet-seek" id="seek" min="0" max="1000" value="0" aria-label="מיקום בשיעור">
@@ -429,6 +395,7 @@
   // זה רק עניין תצוגתי.
   function itemLabel(key, label){ return moadimNames[key] ? label : ('פרשת ' + label); }
   function keyLabel(key){ return itemLabel(key, pairLabel[key] || key); }
+  function nShiurim(n){ return n === 1 ? 'שיעור אחד' : n + ' שיעורים'; }
   function chumashLabel(name){ return name === 'מועדים' ? name : 'חומש ' + name; }
 
   // ====== גימטריה לשנים (תשפו -> 786, לצורך מיון) ======
@@ -536,6 +503,7 @@
   const ICON_BACK  = svg(20, '<path d="m9 6 6 6-6 6"/>', 'fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"');
   const ICON_CHEV  = svg(16, '<path d="m15 6-6 6 6 6"/>', 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"');
   const ICON_SEARCH = svg(17, '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>');
+  const ICON_SHARE = svg(21, '<path d="M4 12v7h16v-7"/><path d="M12 3v12"/><path d="m8 7 4-4 4 4"/>');
   const ICON_X     = svg(18, '<path d="M6 6l12 12M18 6 6 18"/>');
 
   // בונה קישור ישיר לפרשה+שנה מסוימת
@@ -583,6 +551,13 @@
     if (vol){ go({ type:'chumash', name:vol.dataset.chumash }); return; }
     const prow = t.closest('.prow');
     if (prow){ go({ type:'parasha', key:prow.dataset.key, year:prow.dataset.year || null }); return; }
+    const pill = t.closest('.pill');
+    if (pill){ homeFilter = pill.dataset.hf; renderShelf(); return; }
+    if (t.closest('#playParasha')){
+      if (current && current.s.pageKey === view.key) togglePlay(); else playParasha(view.key);
+      return;
+    }
+    if (t.closest('#shareParasha')){ copyLink(location.origin + location.pathname + '?parasha=' + encodeURIComponent(view.key)); return; }
     const chip = t.closest('.chip');
     if (chip){ parashaFilter = { key:view.key, val:chip.dataset.f }; renderParasha(view.key); return; }
     // כרטיס "חדש" / "המשך האזנה" - לחיצה על הכרטיס עצמו (לא על ▶) פותחת את הדף שלו
@@ -593,7 +568,9 @@
       if (s){ go({ type:'parasha', key:s.pageKey, year:s.year }); }
       return;
     }
-    if (t.closest('#searchFake')){ go({ type:'search' }); return; }
+    // לחיצה על שורת שיעור (לא על כפתור/קישור בתוכה) - מנגנת, כמו שיר באלבום
+    const row = t.closest('.shiur-row');
+    if (row && !t.closest('a,button')){ playShiur(row.dataset.path); return; }
     const link = t.closest('[data-go]');
     if (link){ go({ type:link.dataset.go }); return; }
     if (t.closest('#playListBtn')){ playList(); return; }
@@ -749,7 +726,8 @@
       const bar = el.querySelector('.shiur-bar i'); if (bar) bar.style.width = st.pct + '%';
       el.classList.toggle('is-done', st.done);
       el.classList.toggle('playing', st.isCur);
-      const tag = el.querySelector('.tag'); if (tag) tag.textContent = st.done ? '✓ נשמע' : 'חדש';
+      el.classList.toggle('started', st.pct > 0);
+      const ts = el.querySelector('.tile-s'); if (ts) ts.textContent = st.done ? '✓ נשמע' : 'חדש' + (st.meta && !st.playing ? ' · ' + st.meta.replace(/<[^>]+>/g, '') : '');
       const sb = el.querySelector('.save-btn');
       if (sb){
         sb.classList.toggle('on', st.saved);
@@ -758,7 +736,7 @@
       }
       const pb = el.querySelector('.play-btn');
       if (pb){
-        const n = el.classList.contains('tile') ? 16 : 20;
+        const n = el.classList.contains('tile') ? 16 : el.classList.contains('shiur-row') ? 18 : 20;
         pb.innerHTML = st.playing ? iconPause(n) : iconPlay(n);
         pb.setAttribute('aria-label', st.playing ? 'השהה' : 'נגן');
       }
@@ -825,6 +803,12 @@
     audio.src = shiurUrl(s) + (start ? '#t=' + start : '');
     applySpeed();
     document.getElementById('miniTitle').textContent = current.title;
+    // הנגן הקטן והמלא בצבעי החומש של השיעור, עם העטיפה שלו
+    const ch = chumashOf(s.pageKey);
+    miniEl.setAttribute('style', colorVars(ch));
+    sheetEl.setAttribute('style', colorVars(ch));
+    document.getElementById('miniCover').outerHTML = coverHtml(ch, '', '', 'plain', 0, 'miniCover');
+    document.getElementById('sheetArt').outerHTML = coverHtml(ch, coverText(s.pageKey), chumashLabel(ch) + ' · ' + yearDisplay(s.year), 'sheet-art', 52, 'sheetArt');
     miniEl.hidden = false;
     document.body.classList.add('has-player');
     updateTimes(start, p.d || 0);
@@ -888,6 +872,8 @@
     refreshCards(current.path);
   });
   function onPlayState(){
+    const bp = document.getElementById('playParasha');
+    if (bp) bp.innerHTML = current && current.s.pageKey === view.key && !audio.paused ? iconPause(26) : iconPlay(26);
     document.getElementById('miniPlay').innerHTML = audio.paused ? iconPlay(28) : iconPause(28);
     document.getElementById('bigPlay').innerHTML = audio.paused ? iconPlay(34) : iconPause(34);
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
@@ -1095,59 +1081,96 @@
     app.classList.add('fade-in');
   }
 
+  // ====== עטיפות ======
+  // לכל חומש צבע משלו, כמו עטיפת אלבום - כך מזהים שיעור במבט, גם בנגן
+  const CH_COLORS = {
+    'בראשית':['#2d4f7c','#1a2f4d'], 'שמות':['#7c2d3a','#4a1822'], 'ויקרא':['#5a3d72','#342245'],
+    'במדבר':['#5f6b2e','#394119'], 'דברים':['#2c6a4a','#173826'], 'מועדים':['#a57a2c','#654616']
+  };
+  function colorVars(chumash){ const c = CH_COLORS[chumash] || CH_COLORS['דברים']; return `--ca:${c[0]};--cb:${c[1]}`; }
+  // עטיפה: text - הכיתוב הגדול, sub - שורה קטנה, base - גודל הגופן; שמות ארוכים מוקטנים לבד
+  function coverHtml(chumash, text, sub, cls, base, id){
+    const len = Math.max(...String(text || '').split('<br>').map(x => x.length), 1);
+    const fs = Math.round((base || 22) * Math.max(0.5, Math.min(1, 6.5 / len)));
+    return `<span class="cover${cls ? ' ' + cls : ''}"${id ? ` id="${id}"` : ''} style="${colorVars(chumash)};--fs:${fs}px">${text ? `<b>${text}</b>` : ''}${sub ? `<i>${sub}</i>` : ''}</span>`;
+  }
+  function coverText(key){ return (pairLabel[key] || key).replace(' · ', '<br>'); }
+  function shiurCover(s, cls, base, withSub){
+    const ch = chumashOf(s.pageKey);
+    return coverHtml(ch, coverText(s.pageKey), withSub ? yearDisplay(s.year) : '', cls, base);
+  }
+
   function topbar(crumb){
-    return `<div class="topbar"><button class="back-btn" aria-label="חזרה">${ICON_BACK}</button><span class="crumb">${crumb}</span></div>`;
+    return `<div class="topbar"><button class="back-btn" aria-label="חזרה">${ICON_BACK}</button><span class="crumb">${crumb || ''}</span></div>`;
   }
 
   // ====== דף הבית ======
+  let homeFilter = 'all';   // הכל / פרשות / מועדים / עיון
+  function greeting(){
+    const h = new Date().getHours();
+    return h >= 5 && h < 12 ? 'בוקר טוב' : h >= 12 && h < 17 ? 'צהריים טובים' : h >= 17 && h < 21 ? 'ערב טוב' : 'לילה טוב';
+  }
+  const isMoed = s => chumashOf(s.pageKey) === 'מועדים';
+
   function renderShelf(){
-    const total = totalCount();
-    let html = `<section class="hero"><div class="hero-in">
-        <h1>שיעורי פרשת שבוע<br> ומועדים</h1>
-        <p class="by">מאת ${RABBI}</p>
-        <p class="count">${setupMode ? 'בהקמה' : total + ' שיעורים בארכיון'}</p>
-      </div></section>
-      <button class="search-fake" id="searchFake">${ICON_SEARCH}חיפוש פרשה או מועד</button>
+    const pills = [['all','הכל'], ['parashot','פרשות'], ['moadim','מועדים'], ['iyun','עיון']];
+    let html = `<div class="home-top"><div><div class="greet">${greeting()}</div>
+        <div class="greet-s">שיעורי פרשה ומועדים · ${RABBI}</div></div><span class="avatar" aria-hidden="true"></span></div>
+      <div class="pills">${pills.map(p => `<button class="pill${homeFilter === p[0] ? ' on' : ''}" data-hf="${p[0]}">${p[1]}</button>`).join('')}</div>
       <div id="installSlot">${installHtml()}</div>`;
     if (setupMode) html += `<div class="empty-box" style="margin-top:18px">האתר עדיין בהקמה — השיעורים יעלו בקרוב בעז"ה.</div>`;
 
+    // עיון: רשימה של כל שיעורי העיון
+    if (homeFilter === 'iyun'){
+      const all = Object.values(byPath).filter(s => s.isIyun).sort((a, b) => yearValue(b.year) - yearValue(a.year));
+      html += `<div class="sec"><h3>שיעורי עיון</h3></div>`;
+      html += all.length ? all.map(s => shiurRowHtml(s, s.pageKey, false, false, true)).join('') : `<div class="empty-box">עדיין אין שיעורי עיון</div>`;
+      app.innerHTML = html;
+      return;
+    }
+    const fit = s => homeFilter === 'all' || (homeFilter === 'moadim' ? isMoed(s) : !isMoed(s));
+
     const cont = lastInProgress();
-    if (cont){
+    if (cont && fit(cont)){
       const st = cardState(cont.path);
-      html += `<div class="sec"><h3>המשך האזנה</h3></div>
-        <div class="cont" data-path="${escAttr(cont.path)}">
-          <span class="cont-th"></span>
-          <span class="cont-gr"><span class="cont-t">${shiurTitle(cont, cont.pageKey, true)}</span>
-            <span class="shiur-meta">${st.meta}</span><span class="shiur-bar"><i style="width:${st.pct}%"></i></span></span>
+      html += `<div class="cont" data-path="${escAttr(cont.path)}"><div class="cont-in">
+          <div><div class="cont-tag">המשך האזנה</div><div class="cont-t">${keyLabel(cont.pageKey)}</div>
+          <div class="shiur-meta">${shiurDetail(cont)} · ${st.meta}</div></div>
           <button class="play-btn" aria-label="${st.playing ? 'השהה' : 'נגן'}">${st.playing ? iconPause(20) : iconPlay(20)}</button>
-        </div>`;
+        </div><span class="shiur-bar"><i style="width:${st.pct}%"></i></span></div>`;
     }
 
     const r = recentGroups();
-    if (r.dates.length){
-      const isDone = s => (getProg(s.path) || {}).done ? 1 : 0;
-      const items = [].concat(...r.dates.map(d => r.groups[d])).sort((a, b) => isDone(a) - isDone(b)).slice(0, 10);
-      html += `<div class="sec"><h3>${r.thisWeek ? 'חדש השבוע' : 'העלאות אחרונות'}</h3><button class="link" data-go="recent">לכל החדשים</button></div><div class="tiles">`;
+    const isDone = s => (getProg(s.path) || {}).done ? 1 : 0;
+    const items = [].concat(...r.dates.map(d => r.groups[d])).filter(fit).sort((a, b) => isDone(a) - isDone(b)).slice(0, 12);
+    if (items.length){
+      html += `<div class="sec"><h3>${r.thisWeek ? 'חדש השבוע' : 'העלאות אחרונות'}</h3><button class="link" data-go="recent">הכל</button></div><div class="shelf">`;
       for (const s of items){
         const st = cardState(s.path);
         html += `<div class="tile${st.done ? ' is-done' : ''}" data-path="${escAttr(s.path)}">
-          <span class="tag">${st.done ? '✓ נשמע' : 'חדש'}</span>
-          <div class="tile-t">${itemLabel(s.name, pairLabel[s.name] || s.name)}</div>
-          <div class="tile-s">${shiurDetail(s)}</div>
+          ${shiurCover(s, '', 23, true)}
           <button class="play-btn" aria-label="${st.playing ? 'השהה' : 'נגן'}">${st.playing ? iconPause(16) : iconPlay(16)}</button>
+          <div class="tile-t">${keyLabel(s.pageKey)}</div>
+          <div class="tile-s">${st.done ? '✓ נשמע' : 'חדש' + (st.meta && !st.playing ? ' · ' + st.meta : '')}</div>
         </div>`;
       }
       html += '</div>';
     }
 
-    html += `<div class="sec"><h3>הארכיון</h3></div><div class="grid">`;
-    for (const c of CHUMASHIM){
-      let count = 0;
-      for (const key of pageKeysOf(c)) count += (index[key] || []).length;
-      html += `<button class="vol${count ? '' : ' empty'}" data-chumash="${c.name}"><span class="dot"></span>
-        <span class="vol-n">${c.name}</span><span class="vol-c">${count ? count + ' שיעורים' : 'בקרוב'}</span></button>`;
+    // הארכיון: במועדים - רשימת המועדים עצמם; אחרת - החומשים
+    if (homeFilter === 'moadim'){
+      html += `<div class="sec"><h3>כל המועדים</h3></div>` + pageRowsHtml(CHUMASHIM.find(c => c.name === 'מועדים'));
+    } else {
+      html += `<div class="sec"><h3>הארכיון</h3><span class="link">${nShiurim(totalCount())}</span></div><div class="arch">`;
+      for (const c of CHUMASHIM){
+        if (homeFilter === 'parashot' && c.name === 'מועדים') continue;
+        let count = 0;
+        for (const key of pageKeysOf(c)) count += (index[key] || []).length;
+        html += `<button class="vol${count ? '' : ' empty'}" data-chumash="${c.name}">${coverHtml(c.name, '', '', 'plain')}
+          <span><div class="vol-n">${chumashLabel(c.name)}</div><div class="vol-c">${count ? nShiurim(count) : 'בקרוב'}</div></span></button>`;
+      }
+      html += '</div>';
     }
-    html += '</div>';
     app.innerHTML = html;
   }
 
@@ -1194,14 +1217,14 @@
     if (!saved.length && !cont.length && !heard.length){
       html += `<div class="empty-box">הרשימה ריקה.<br>לחצו על סימן השמירה ${ICON_BM} ליד שיעור כדי להוסיף אותו לכאן.</div>`;
     }
-    if (cont.length){
-      html += `<div class="sub-h">המשך האזנה</div>`;
-      for (const s of cont) html += shiurRowHtml(s, s.pageKey, false, false, true);
-    }
     if (saved.length){
       html += `<div class="list-head"><span class="sub-h">שמורים להמשך</span>
         <button class="pill-btn" id="playListBtn">${iconPlay(16)} נגן את הרשימה</button></div>`;
       for (const s of saved) html += shiurRowHtml(s, s.pageKey, false, false, true);
+    }
+    if (cont.length){
+      html += `<div class="sub-h">המשך האזנה</div>`;
+      for (const s of cont) html += shiurRowHtml(s, s.pageKey, false, false, true);
     }
     if (heard.length){
       html += `<div class="sub-h">נשמעו לאחרונה</div>`;
@@ -1210,20 +1233,29 @@
     app.innerHTML = html;
   }
 
+  // שורות הפרשות/המועדים של חומש, עם עטיפה קטנה לכל אחד
+  function pageRowsHtml(c){
+    let html = '<div class="plist">';
+    for (const key of pageKeysOf(c)){
+      const n = (index[key] || []).length;
+      html += `<button class="prow${n ? '' : ' empty'}" data-key="${key}">${coverHtml(c.name, coverText(key), '', 'sm', 15)}
+        <span class="prow-gr"><div class="prow-n">${keyLabel(key)}</div><div class="prow-s">${n ? nShiurim(n) : 'עדיין אין שיעורים'}</div></span>
+        ${n ? `<span class="prow-c">${ICON_CHEV}</span>` : ''}</button>`;
+    }
+    return html + '</div>';
+  }
+
   // ====== חומש ======
   function renderChumash(name){
     const c = CHUMASHIM.find(x => x.name === name);
     let count = 0;
     for (const key of pageKeysOf(c)) count += (index[key] || []).length;
-    let html = topbar('הארכיון') + `<h2 class="ptitle">${chumashLabel(name)}</h2>
-      <p class="psub">${count ? count + ' שיעורים' : 'עדיין אין שיעורים'}</p><div class="plist">`;
-    for (const key of pageKeysOf(c)){
-      const n = (index[key] || []).length;
-      html += `<button class="prow${n ? '' : ' empty'}" data-key="${key}"><span class="prow-n">${keyLabel(key)}</span>
-        <span class="prow-c">${n ? n + ' שיעורים' : '—'}${n ? ICON_CHEV : ''}</span></button>`;
-    }
-    html += '</div>';
-    app.innerHTML = html;
+    app.innerHTML = `<div class="page" style="${colorVars(name)}"><div class="tint"></div><div style="position:relative">
+      ${topbar('הארכיון')}
+      ${coverHtml(name, name, name === 'מועדים' ? 'חגים וימים מיוחדים' : 'חמישה חומשי תורה', 'big-cover', 36)}
+      <h2 class="ptitle">${chumashLabel(name)}</h2>
+      <p class="psub">${count ? nShiurim(count) : 'עדיין אין שיעורים'}</p>
+      ${pageRowsHtml(c)}</div></div>`;
   }
 
   // שיעורי דף מסוים, מהחדש לישן (ובאותה שנה: לפי שיעור ואז לפי חלק)
@@ -1240,25 +1272,37 @@
     return namePart + shiurDetail(s);
   }
 
-  // כרטיס שיעור: ▶, כותרת ומצב האזנה, שמירה, ⋮, סיכום, פס התקדמות
+  // שורת שיעור, כמו שיר באלבום: לחיצה על השורה מנגנת. withName - בדפים
+  // שמערבבים פרשות: עם עטיפה קטנה ושם הפרשה
   function shiurRowHtml(s, key, hl, isTarget, withName){
     const st = cardState(s.path);
     const pdfUrl = summaryUrl(s);
-    return `<div class="shiur-row${hl ? ' hl' : ''}${st.done ? ' is-done' : ''}${st.isCur ? ' playing' : ''}" data-path="${escAttr(s.path)}"${isTarget ? ' id="target-year"' : ''}>
-        <div class="shiur-head">
-          <button class="play-btn" aria-label="${st.playing ? 'השהה' : 'נגן'}">${st.playing ? iconPause(20) : iconPlay(20)}</button>
-          <div class="shiur-gr"><div class="shiur-title">${shiurTitle(s, key, withName)}</div><div class="shiur-meta">${st.meta}</div></div>
-          <div class="shiur-acts">
-            <button class="icon-btn save-btn${st.saved ? ' on' : ''}" title="${st.saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי'}" aria-label="שמירה לרשימה שלי">${st.saved ? ICON_BM_ON : ICON_BM}</button>
-            <button class="icon-btn more-btn" title="אפשרויות נוספות" aria-label="אפשרויות נוספות" aria-haspopup="menu">${ICON_MORE}</button>
-          </div>
+    return `<div class="shiur-row${hl ? ' hl' : ''}${st.done ? ' is-done' : ''}${st.isCur ? ' playing' : ''}${st.pct > 0 ? ' started' : ''}" data-path="${escAttr(s.path)}"${isTarget ? ' id="target-year"' : ''}>
+        ${withName ? shiurCover(s, 'sm', 15) : ''}
+        <div class="shiur-gr">
+          <div class="shiur-title">${shiurTitle(s, key, withName)}</div>
+          <div class="shiur-sub"><span class="shiur-meta">${st.meta}</span>${pdfUrl ? `<a class="summary-link" href="${pdfUrl}" target="_blank" rel="noopener" title="הורד סיכום השיעור">${ICON_DOC} סיכום</a>` : ''}</div>
+          <div class="shiur-bar"><i style="width:${st.pct}%"></i></div>
         </div>
-        <div class="shiur-foot">${pdfUrl ? `<a class="summary-link" href="${pdfUrl}" target="_blank" rel="noopener" title="הורד סיכום השיעור">${ICON_DOC} סיכום</a>` : ''}</div>
-        <div class="shiur-bar"><i style="width:${st.pct}%"></i></div>
+        <div class="shiur-acts">
+          <button class="icon-btn save-btn${st.saved ? ' on' : ''}" title="${st.saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי'}" aria-label="שמירה לרשימה שלי">${st.saved ? ICON_BM_ON : ICON_BM}</button>
+          <button class="icon-btn more-btn" title="אפשרויות נוספות" aria-label="אפשרויות נוספות" aria-haspopup="menu">${ICON_MORE}</button>
+        </div>
+        <button class="play-btn" aria-label="${st.playing ? 'השהה' : 'נגן'}">${st.playing ? iconPause(18) : iconPlay(18)}</button>
       </div>`;
   }
 
-  // ====== דף פרשה ======
+  // ====== דף פרשה (כמו דף אלבום) ======
+  function filteredShiurim(key){
+    const f = parashaFilter.key === key ? parashaFilter.val : 'all';
+    return sortedShiurim(key).filter(s => f === 'all' || (f === 'iyun' ? s.isIyun : s.year === f));
+  }
+  // הכפתור הגדול: השיעור הראשון שעוד לא נשמע (או הראשון בכלל)
+  function playParasha(key){
+    const list = filteredShiurim(key);
+    const next = list.find(s => !(getProg(s.path) || {}).done) || list[0];
+    if (next) playShiur(next.path);
+  }
   function renderParasha(key){
     const chumash = chumashOf(key);
     const all = sortedShiurim(key);
@@ -1266,9 +1310,17 @@
     const years = [...new Set(all.map(s => s.year))];
     const hasIyun = all.some(s => s.isIyun);
     const f = parashaFilter.val;
-    const shiurim = all.filter(s => f === 'all' || (f === 'iyun' ? s.isIyun : s.year === f));
-    let html = topbar('הארכיון · ' + chumashLabel(chumash)) + `<h2 class="ptitle">${keyLabel(key)}</h2>
-      <p class="psub">${all.length ? `${all.length} שיעורים${years.length > 1 ? ' · ' + years.length + ' שנים' : ''}` : ''}</p>`;
+    const shiurim = filteredShiurim(key);
+    const playingHere = current && current.s.pageKey === key && !audio.paused;
+    let html = `<div class="page" style="${colorVars(chumash)}"><div class="tint"></div><div style="position:relative">
+      ${topbar(chumashLabel(chumash))}
+      ${coverHtml(chumash, coverText(key), chumashLabel(chumash), 'big-cover', 38)}
+      <h2 class="ptitle">${keyLabel(key)}</h2>
+      <p class="psub">${all.length ? `${nShiurim(all.length)}${years.length > 1 ? ' · ' + years.length + ' שנים' : ''}` : 'עדיין אין שיעורים'}</p>`;
+    if (all.length){
+      html += `<div class="ctl"><div class="ctl-l"><button class="icon-btn" id="shareParasha" title="העתק קישור" aria-label="העתק קישור לדף">${ICON_SHARE}</button></div>
+        <button class="big-play" id="playParasha" aria-label="${playingHere ? 'השהה' : 'נגן'}">${playingHere ? iconPause(26) : iconPlay(26)}</button></div>`;
+    }
     // סינון - רק כשיש באמת מה לסנן (יותר משנה אחת, או שיעורי עיון)
     if (years.length > 1 || (hasIyun && all.length > 1)){
       html += `<div class="chips"><button class="chip${f === 'all' ? ' on' : ''}" data-f="all">הכל</button>`;
@@ -1283,7 +1335,7 @@
       html += shiurRowHtml(s, key, hl, hl && !marked);
       if (hl) marked = true;
     }
-    app.innerHTML = html;
+    app.innerHTML = html + '</div></div>';
     const target = document.getElementById('target-year');
     if (target && f === 'all') setTimeout(() => target.scrollIntoView({ behavior:'smooth', block:'center' }), 100);
   }
@@ -1335,8 +1387,8 @@
 
   let lastQuery = '';
   function renderSearch(){
-    app.innerHTML = `<div class="page-top"><h2 class="ptitle">חיפוש</h2><p class="psub">פרשה או מועד, אפשר גם עם שנה: נח תשפה</p></div>
-      <div class="search-box">${ICON_SEARCH}<input type="search" class="search-input" id="searchInput" placeholder="למשל: כי תבוא" autocomplete="off" enterkeyhint="search"></div>
+    app.innerHTML = `<div class="page-top"><h2 class="ptitle">חיפוש</h2></div>
+      <div class="search-box">${ICON_SEARCH}<input type="search" class="search-input" id="searchInput" placeholder="פרשה או מועד, אפשר גם עם שנה" autocomplete="off" enterkeyhint="search"></div>
       <div id="searchResults"></div>`;
     const input = document.getElementById('searchInput');
     input.value = lastQuery;
@@ -1359,23 +1411,24 @@
     if (!res){
       for (const c of CHUMASHIM) for (const key of pageKeysOf(c)){
         const n = (index[key] || []).length;
-        if (n) rows.push({ key, sub: chumashLabel(c.name), right: n + ' שיעורים' });
+        if (n) rows.push({ key, sub: chumashLabel(c.name) + ' · ' + nShiurim(n) });
       }
     } else {
       for (const key of res.keys){
-        const sub = chumashLabel(chumashOf(key));
+        const ch = chumashLabel(chumashOf(key));
         if (res.year){
           // שורה לכל שנה תואמת בדף הזה
           [...new Set(index[key].map(s => s.year))].filter(y => y.startsWith(res.year))
             .sort((a,b) => yearValue(b) - yearValue(a))
-            .forEach(y => rows.push({ key, year: y, sub, right: yearDisplay(y) }));
-        } else rows.push({ key, sub, right: index[key].length + ' שיעורים' });
+            .forEach(y => rows.push({ key, year: y, sub: ch + ' · ' + yearDisplay(y) }));
+        } else rows.push({ key, sub: ch + ' · ' + nShiurim(index[key].length) });
       }
     }
     if (!rows.length){ box.innerHTML = `<div class="empty-box">לא נמצאה התאמה</div>`; return; }
     box.innerHTML = `<div class="plist">${rows.slice(0, 40).map(r => `<button class="prow" data-key="${r.key}"${r.year ? ` data-year="${r.year}"` : ''}>
-      <span><div class="prow-n">${keyLabel(r.key)}</div><div class="prow-s">${r.sub}</div></span>
-      <span class="prow-c">${r.right}${ICON_CHEV}</span></button>`).join('')}</div>`;
+      ${coverHtml(chumashOf(r.key), coverText(r.key), '', 'sm', 15)}
+      <span class="prow-gr"><div class="prow-n">${keyLabel(r.key)}</div><div class="prow-s">${r.sub}</div></span>
+      <span class="prow-c">${ICON_CHEV}</span></button>`).join('')}</div>`;
   }
 
   // ====== התקנת האפליקציה ======

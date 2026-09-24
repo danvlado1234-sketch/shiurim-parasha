@@ -9,7 +9,7 @@
 //  המשניות יושבות באותה כתובת אבל בתיקייה אחרת - ה-SW הזה חל רק על
 //  /shiurim-parasha/ ולא נוגע בהן.
 // ============================================================
-const CACHE = 'parasha-v1';
+const CACHE = 'parasha-v2';
 const CORE = ['./', 'index.html', 'manifest.webmanifest', 'bg-rabbi.jpg',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'];
 
