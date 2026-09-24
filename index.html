@@ -25,15 +25,54 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="שיעורי פרשה">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>
+  // ערכת צבעים: כהה באפליקציה המותקנת (מסך מלא), בהירה באתר בדפדפן.
+  // רץ לפני שהדף מצויר, כדי שלא יהבהב בצבע הלא נכון.
+  (function(){
+    var app = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+    document.documentElement.setAttribute('data-theme', app ? 'dark' : 'light');
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m && !app) m.setAttribute('content', '#f7f3ea');
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* ====== עיצוב "מצב לילה": רקע כהה, "עטיפה" צבעונית לכל חומש, זהב להדגשה ====== */
-  :root {
+  /* שתי ערכות צבעים לאותו עיצוב: כהה (באפליקציה המותקנת) ובהירה (באתר,
+     בדפדפן). נבחרת בסקריפט שבראש הדף (data-theme על html). הנגנים והבאנר
+     "המשך האזנה" תמיד כהים - הם בנויים סביב העטיפה/התמונה. */
+  :root, .sheet, .mini, .cont {
     --bg:#0f1a14; --surface:#18251d; --surface2:#213128; --line:#2a3b31;
-    --text:#f1ead8; --muted:#8fa296; --muted2:#6f8377;
+    --text:#f1ead8; --text2:#d8cfb8; --muted:#8fa296; --muted2:#6f8377;
     --gold:#d9b876; --gold-ink:#16241c; --done:#7fcf9f;
+    --hl:#d9b876;            /* טקסט מודגש (מתנגן, סיכום, סמלים בתפריט) */
+    --save:#d9b876;          /* סימנייה פעילה */
+    --btn:#d9b876; --btn-ink:#16241c;   /* כפתור ראשי */
+    --badge:#d9b876; --badge-ink:#16241c;
+    --hover:rgba(255,255,255,.05); --glass:rgba(0,0,0,.22);
+    --track:rgba(255,255,255,.1); --prog:#d9b876;
+    --menu:#26382e; --field:#f1ead8; --field-ink:#0f1a14;
+    --tabs-bg:linear-gradient(180deg, rgba(15,26,20,.6), rgba(15,26,20,.97) 40%); --tabs-line:transparent;
+    --tabs-desk:rgba(15,26,20,.92);
+    color-scheme:dark;
+  }
+  html[data-theme="light"] {
+    --bg:#f7f3ea; --surface:#fffdf8; --surface2:#ece5d5; --line:#e3d9c4;
+    --text:#231e17; --text2:#3b342a; --muted:#7d7362; --muted2:#9b917e;
+    --done:#2e7d4f;
+    --hl:#1f4a33; --save:#b07a22;
+    --btn:#1f4a33; --btn-ink:#fff;
+    --badge:#b07a22; --badge-ink:#fff;
+    --hover:rgba(35,30,23,.05); --glass:rgba(35,30,23,.07);
+    --track:#e8dfcb; --prog:#1f4a33;
+    --menu:#fffdf8; --field:#fff; --field-ink:#231e17;
+    --tabs-bg:rgba(247,243,234,.96); --tabs-line:#e3d9c4;
+    --tabs-desk:rgba(247,243,234,.95);
+    color-scheme:light;
+  }
+  :root {
     --ca:#2c6a4a; --cb:#173826;   /* צבעי החומש הנוכחי (משתנים לפי הדף/השיעור) */
     --tabs-h: 66px;
     --mini-h: 0px;
@@ -43,7 +82,7 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   [hidden] { display:none !important; }
   /* בלי הגדלה (צביטה / הקשה כפולה) - התנהגות של אפליקציה ולא של דף אינטרנט */
-  html { background:var(--bg); touch-action:pan-x pan-y; -webkit-text-size-adjust:100%; text-size-adjust:100%; color-scheme:dark; }
+  html { background:var(--bg); touch-action:pan-x pan-y; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
   body {
     font-family:'Heebo',sans-serif; background:var(--bg); color:var(--text);
     min-height:100vh; -webkit-tap-highlight-color:transparent;
@@ -80,11 +119,11 @@
   .avatar { width:40px; height:40px; border-radius:50%; flex-shrink:0; border:2px solid var(--gold); background:url('bg-rabbi.jpg') 55% 30% / cover; }
   .pills { display:flex; gap:7px; padding:14px 18px 0; overflow-x:auto; scrollbar-width:none; }
   .pills::-webkit-scrollbar { display:none; }
-  .pill { flex-shrink:0; font-size:13px; padding:7px 15px; border-radius:18px; border:0; background:var(--surface2); color:#d8cfb8; font-weight:600; cursor:pointer; }
-  .pill.on { background:var(--gold); color:var(--gold-ink); }
+  .pill { flex-shrink:0; font-size:13px; padding:7px 15px; border-radius:18px; border:0; background:var(--surface2); color:var(--text2); font-weight:600; cursor:pointer; }
+  .pill.on { background:var(--btn); color:var(--btn-ink); }
 
   .cont {
-    display:block; position:relative; margin:16px 18px 0; height:176px; border-radius:18px; overflow:hidden; cursor:pointer;
+    display:block; color:var(--text); position:relative; margin:16px 18px 0; height:176px; border-radius:18px; overflow:hidden; cursor:pointer;
     background:url('bg-rabbi.jpg') 42% 30% / cover #203027;
   }
   .cont::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, rgba(15,26,20,.12), rgba(15,26,20,.88) 68%); }
@@ -104,7 +143,7 @@
   .shelf::-webkit-scrollbar { display:none; }
   .tile { flex:0 0 136px; scroll-snap-align:start; cursor:pointer; position:relative; }
   .tile .cover { width:136px; height:136px; }
-  .tile .play-btn { position:absolute; top:94px; left:8px; width:34px; height:34px; background:var(--gold); color:var(--gold-ink); box-shadow:0 4px 12px rgba(0,0,0,.35); }
+  .tile .play-btn { position:absolute; top:94px; left:8px; width:34px; height:34px; background:var(--btn); color:var(--btn-ink); box-shadow:0 4px 12px rgba(0,0,0,.35); }
   .tile-t { font-weight:700; font-size:14px; margin-top:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .tile-s { font-size:12px; color:var(--muted); margin-top:1px; }
   .tile.is-done .tile-s { color:var(--done); }
@@ -122,44 +161,47 @@
   .install-gr { flex:1; min-width:0; }
   .install-t { font-weight:700; font-size:14.5px; }
   .install-s { font-size:12.5px; color:var(--muted); margin-top:1px; line-height:1.4; }
-  .install-go { background:var(--gold); color:var(--gold-ink); border:0; border-radius:18px; padding:7px 14px; font-weight:700; font-size:13.5px; cursor:pointer; flex-shrink:0; }
+  .install-go { background:var(--btn); color:var(--btn-ink); border:0; border-radius:18px; padding:7px 14px; font-weight:700; font-size:13.5px; cursor:pointer; flex-shrink:0; }
   .install-x { background:none; border:0; color:var(--muted); cursor:pointer; padding:4px; flex-shrink:0; display:inline-flex; }
 
   /* ====== דפים פנימיים ====== */
   .tint { position:absolute; top:0; left:0; right:0; height:400px; pointer-events:none;
     background:linear-gradient(180deg, var(--ca) 0%, color-mix(in srgb, var(--cb) 70%, var(--bg)) 45%, var(--bg) 100%); opacity:.9; }
+  html[data-theme="light"] .tint { background:linear-gradient(180deg, color-mix(in srgb, var(--ca) 50%, var(--bg)) 0%, color-mix(in srgb, var(--ca) 16%, var(--bg)) 45%, var(--bg) 100%); opacity:1; }
+  html[data-theme="light"] .vol, html[data-theme="light"] .install, html[data-theme="light"] .empty-box { border:1px solid var(--line); }
+  html[data-theme="light"] .vol { box-shadow:0 1px 3px rgba(35,30,23,.05); }
   .page { position:relative; }
   .topbar { display:flex; align-items:center; gap:10px; padding:12px 12px 4px; }
-  .back-btn { all:unset; cursor:pointer; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:rgba(0,0,0,.22); }
-  .back-btn:hover { background:rgba(0,0,0,.35); }
-  .crumb { font-size:13px; color:rgba(241,234,216,.8); }
+  .back-btn { all:unset; cursor:pointer; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:var(--glass); }
+  .back-btn:hover { filter:brightness(.9); }
+  .crumb { font-size:13px; color:var(--muted); }
   .big-cover { width:min(58vw, 210px); height:min(58vw, 210px); margin:6px auto 0; box-shadow:0 18px 44px rgba(0,0,0,.45); --fs:34px; }
   .big-cover::after { width:20px; height:20px; top:14px; left:14px; }
   .ptitle { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:clamp(26px,7.5vw,32px); padding:16px 18px 0; line-height:1.15; }
-  .psub { font-size:13px; color:#a9bdb1; padding:4px 18px 0; }
+  .psub { font-size:13px; color:var(--muted); padding:4px 18px 0; }
   .page-top { padding-top:18px; }
   .page-top .psub { padding-bottom:6px; }
   .ctl { display:flex; justify-content:space-between; align-items:center; padding:14px 18px 8px; }
   .ctl-l { display:flex; gap:6px; }
-  .ctl .icon-btn { width:42px; height:42px; color:#c9d6cd; }
+  .ctl .icon-btn { width:42px; height:42px; color:var(--muted); }
   .big-play { width:56px; height:56px; border-radius:50%; border:0; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
-    background:var(--gold); color:var(--gold-ink); box-shadow:0 8px 20px rgba(0,0,0,.35); transition:transform .12s ease; }
+    background:var(--btn); color:var(--btn-ink); box-shadow:0 8px 20px rgba(0,0,0,.25); transition:transform .12s ease; }
   .big-play:hover { transform:scale(1.05); }
 
   .chips { display:flex; gap:7px; padding:6px 18px 8px; overflow-x:auto; scrollbar-width:none; }
   .chips::-webkit-scrollbar { display:none; }
-  .chip { flex-shrink:0; font-size:13px; padding:6px 13px; border-radius:16px; border:0; background:var(--surface2); color:#d8cfb8; font-weight:600; cursor:pointer; }
+  .chip { flex-shrink:0; font-size:13px; padding:6px 13px; border-radius:16px; border:0; background:var(--surface2); color:var(--text2); font-weight:600; cursor:pointer; }
   .chip.on { background:var(--text); color:var(--bg); }
 
   .sub-h { font-weight:800; font-size:17px; margin:22px 18px 8px; }
   .list-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:22px 18px 8px; }
   .list-head .sub-h { margin:0; }
-  .pill-btn { display:inline-flex; align-items:center; gap:6px; cursor:pointer; flex-shrink:0; background:var(--gold); color:var(--gold-ink); border:0; border-radius:18px; padding:7px 14px; font-weight:700; font-size:13.5px; }
+  .pill-btn { display:inline-flex; align-items:center; gap:6px; cursor:pointer; flex-shrink:0; background:var(--btn); color:var(--btn-ink); border:0; border-radius:18px; padding:7px 14px; font-weight:700; font-size:13.5px; }
 
   /* שורות פרשה/מועד (דף חומש, חיפוש, מועדים) */
   .plist { display:flex; flex-direction:column; gap:2px; margin:6px 8px 0; }
   .prow { all:unset; cursor:pointer; display:flex; align-items:center; gap:12px; padding:8px 10px; border-radius:10px; }
-  .prow:hover { background:rgba(255,255,255,.05); }
+  .prow:hover { background:var(--hover); }
   .prow .cover { width:50px; height:50px; border-radius:8px; }
   .prow-gr { flex:1; min-width:0; }
   .prow-n { font-weight:700; font-size:15.5px; }
@@ -169,19 +211,19 @@
 
   /* ====== שורת שיעור (כמו שיר באלבום) ====== */
   .shiur-row { display:flex; align-items:center; gap:12px; padding:10px 18px; cursor:pointer; position:relative; }
-  .shiur-row:hover { background:rgba(255,255,255,.04); }
+  .shiur-row:hover { background:var(--hover); }
   .shiur-row.hl { background:rgba(217,184,118,.1); }
   .shiur-row .cover { width:50px; height:50px; border-radius:8px; }
   .shiur-gr { flex:1; min-width:0; }
   .shiur-title { font-weight:700; font-size:15.5px; line-height:1.3; }
-  .shiur-row.playing .shiur-title { color:var(--gold); }
+  .shiur-row.playing .shiur-title { color:var(--hl); }
   .shiur-sub { display:flex; align-items:center; gap:8px; margin-top:2px; flex-wrap:wrap; }
   .shiur-meta { font-size:12.5px; color:var(--muted); }
   .shiur-meta .done { color:var(--done); font-weight:700; }
-  .summary-link { font-size:12px; color:var(--gold); text-decoration:none; border:1px solid rgba(217,184,118,.4); border-radius:10px; padding:1px 8px; display:inline-flex; align-items:center; gap:4px; }
-  .summary-link:hover { background:rgba(217,184,118,.12); }
-  .shiur-bar { height:3px; background:rgba(255,255,255,.1); border-radius:2px; margin-top:7px; max-width:220px; overflow:hidden; }
-  .shiur-bar i { display:block; height:100%; width:0; background:var(--gold); transition:width .3s linear; }
+  .summary-link { font-size:12px; color:var(--hl); text-decoration:none; border:1px solid color-mix(in srgb, var(--hl) 40%, transparent); border-radius:10px; padding:1px 8px; display:inline-flex; align-items:center; gap:4px; }
+  .summary-link:hover { background:color-mix(in srgb, var(--hl) 12%, transparent); }
+  .shiur-bar { height:3px; background:var(--track); border-radius:2px; margin-top:7px; max-width:220px; overflow:hidden; }
+  .shiur-bar i { display:block; height:100%; width:0; background:var(--prog); transition:width .3s linear; }
   .shiur-row:not(.started) .shiur-bar { display:none; }
   .shiur-row.is-done .shiur-bar i { background:var(--done); opacity:.6; }
   .shiur-acts { display:flex; align-items:center; flex-shrink:0; }
@@ -189,11 +231,11 @@
   .play-btn { width:40px; height:40px; border-radius:50%; border:0; cursor:pointer; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;
     background:var(--surface2); color:var(--text); transition:transform .12s ease, background .15s ease; }
   .play-btn:hover { transform:scale(1.06); }
-  .shiur-row.playing .play-btn { background:var(--gold); color:var(--gold-ink); }
+  .shiur-row.playing .play-btn { background:var(--btn); color:var(--btn-ink); }
   .icon-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:50%; color:var(--muted); }
-  .icon-btn:hover, .icon-btn[aria-expanded="true"] { color:var(--text); background:rgba(255,255,255,.07); }
+  .icon-btn:hover, .icon-btn[aria-expanded="true"] { color:var(--text); background:var(--hover); }
   .icon-btn:focus-visible { outline:2px solid var(--gold); }
-  .save-btn.on { color:var(--gold); }
+  .save-btn.on { color:var(--save); }
 
   .empty-box { margin:10px 18px; padding:26px 20px; text-align:center; color:var(--muted); font-size:15px; line-height:1.7; background:var(--surface); border-radius:16px; }
   .empty-box svg { vertical-align:-4px; }
@@ -201,28 +243,28 @@
   /* ====== חיפוש ====== */
   .search-box { position:relative; margin:12px 18px 10px; }
   .search-box svg { position:absolute; top:50%; right:15px; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
-  .search-input { width:100%; font-family:'Heebo',sans-serif; font-size:16px; padding:14px 44px 14px 16px; border:0; border-radius:12px; background:var(--text); color:var(--bg); }
+  .search-input { width:100%; font-family:'Heebo',sans-serif; font-size:16px; padding:14px 44px 14px 16px; border:1px solid var(--line); border-radius:12px; background:var(--field); color:var(--field-ink); }
   .search-input::placeholder { color:#6d6a60; }
   .search-input:focus { outline:2px solid var(--gold); outline-offset:1px; }
 
   /* ====== תפריט ⋮ ====== */
-  .menu { position:absolute; z-index:45; min-width:215px; padding:6px 0; background:#26382e; border-radius:12px; box-shadow:0 16px 36px rgba(0,0,0,.5); }
+  .menu { position:absolute; z-index:45; min-width:215px; padding:6px 0; background:var(--menu); border:1px solid var(--line); border-radius:12px; box-shadow:0 16px 36px rgba(0,0,0,.5); }
   .menu a, .menu button { display:flex; align-items:center; gap:11px; width:100%; padding:12px 16px; font-size:15px; color:var(--text); text-decoration:none; text-align:right; background:none; border:0; cursor:pointer; }
-  .menu a:hover, .menu button:hover, .menu a:focus-visible, .menu button:focus-visible { background:rgba(255,255,255,.07); outline:none; }
-  .menu svg { color:var(--gold); flex-shrink:0; }
+  .menu a:hover, .menu button:hover, .menu a:focus-visible, .menu button:focus-visible { background:var(--hover); outline:none; }
+  .menu svg { color:var(--hl); flex-shrink:0; }
 
   /* ====== לשוניות ====== */
   .tabs {
     position:fixed; left:0; right:0; bottom:0; z-index:30;
     height:calc(var(--tabs-h) + var(--safe-b)); padding-bottom:var(--safe-b);
     display:flex; justify-content:space-around; align-items:center;
-    background:linear-gradient(180deg, rgba(15,26,20,.6), rgba(15,26,20,.97) 40%);
+    background:var(--tabs-bg); border-top:1px solid var(--tabs-line);
     backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   }
   .tab { all:unset; cursor:pointer; position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:11.5px; font-weight:600; color:var(--muted2); padding:6px 12px; border-radius:12px; }
   .tab.on { color:var(--text); }
   .tab:focus-visible { outline:2px solid var(--gold); }
-  .badge { position:absolute; top:0; left:4px; min-width:17px; height:17px; padding:0 5px; border-radius:9px; background:var(--gold); color:var(--gold-ink); font-size:10.5px; font-weight:800; line-height:17px; text-align:center; }
+  .badge { position:absolute; top:0; left:4px; min-width:17px; height:17px; padding:0 5px; border-radius:9px; background:var(--badge); color:var(--badge-ink); font-size:10.5px; font-weight:800; line-height:17px; text-align:center; }
 
   /* ====== נגן קטן (בצבע החומש של השיעור) ====== */
   .mini {
@@ -282,7 +324,7 @@
   @media (min-width: 900px) {
     :root { --tabs-h: 0px; }
     body { padding-bottom:calc(var(--mini-h) + 40px); }
-    .tabs { position:sticky; top:0; bottom:auto; height:auto; padding:10px 0; justify-content:center; gap:8px; background:rgba(15,26,20,.92); border-bottom:1px solid var(--line); }
+    .tabs { position:sticky; top:0; bottom:auto; height:auto; padding:10px 0; justify-content:center; gap:8px; background:var(--tabs-desk); border-top:0; border-bottom:1px solid var(--line); }
     .tab { flex-direction:row; gap:8px; font-size:14.5px; padding:9px 18px; }
     .tab.on { background:var(--surface2); }
     .tab svg { width:20px; height:20px; }
