@@ -26,13 +26,17 @@
 <meta name="apple-mobile-web-app-title" content="שיעורי פרשה">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>
-  // ערכת צבעים: כהה באפליקציה המותקנת (מסך מלא), בהירה באתר בדפדפן.
+  // ערכת צבעים (מצב יום / לילה): קודם מה שהמשתמש בחר בכפתור ☀/☾ בדף הבית
+  // (נשמר במכשיר); בלי בחירה - כהה באפליקציה המותקנת, בהירה באתר בדפדפן.
   // רץ לפני שהדף מצויר, כדי שלא יהבהב בצבע הלא נכון.
   (function(){
+    var pref = null;
+    try { pref = localStorage.getItem('parasha:theme'); } catch (e) {}
     var app = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-    document.documentElement.setAttribute('data-theme', app ? 'dark' : 'light');
+    var theme = (pref === 'light' || pref === 'dark') ? pref : (app ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
     var m = document.querySelector('meta[name="theme-color"]');
-    if (m && !app) m.setAttribute('content', '#f7f3ea');
+    if (m) m.setAttribute('content', theme === 'light' ? '#f7f3ea' : '#0f1a14');
   })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -115,7 +119,13 @@
   /* ====== דף הבית ====== */
   .home-top { display:flex; justify-content:space-between; align-items:center; padding:16px 18px 0; }
   .greet { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:27px; line-height:1.1; }
-  .greet-s { font-size:12.5px; color:var(--muted); margin-top:3px; }
+  .greet-s { font-size:12.5px; color:var(--muted); margin-top:3px; line-height:1.45; }
+  .home-side { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .theme-btn { all:unset; cursor:pointer; width:40px; height:40px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    background:var(--surface2); color:var(--text); }
+  .theme-btn:hover { filter:brightness(1.08); }
+  .theme-btn:focus-visible { outline:2px solid var(--gold); }
+  html.theme-anim, html.theme-anim body, html.theme-anim .tabs, html.theme-anim .vol, html.theme-anim .pill { transition:background-color .3s ease, color .3s ease; }
   .avatar { width:40px; height:40px; border-radius:50%; flex-shrink:0; border:2px solid var(--gold); background:url('bg-rabbi.jpg') 55% 30% / cover; }
   .pills { display:flex; gap:7px; padding:14px 18px 0; overflow-x:auto; scrollbar-width:none; }
   .pills::-webkit-scrollbar { display:none; }
@@ -593,6 +603,7 @@
     if (vol){ go({ type:'chumash', name:vol.dataset.chumash }); return; }
     const prow = t.closest('.prow');
     if (prow){ go({ type:'parasha', key:prow.dataset.key, year:prow.dataset.year || null }); return; }
+    if (t.closest('#themeBtn')){ toggleTheme(); return; }
     const pill = t.closest('.pill');
     if (pill){ homeFilter = pill.dataset.hf; renderShelf(); return; }
     if (t.closest('#playParasha')){
@@ -1146,6 +1157,30 @@
     return `<div class="topbar"><button class="back-btn" aria-label="חזרה">${ICON_BACK}</button><span class="crumb">${crumb || ''}</span></div>`;
   }
 
+  // ====== מצב יום / לילה ======
+  const THEME_KEY = 'parasha:theme';
+  const ICON_SUN  = svg(20, '<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>');
+  const ICON_MOON = svg(20, '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>');
+  const curTheme = () => document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  // הכפתור מראה לאן עוברים: בלילה - שמש (לעבור ליום), ביום - ירח
+  function themeBtnHtml(){
+    const light = curTheme() === 'light';
+    return `<button class="theme-btn" id="themeBtn" title="${light ? 'מעבר למצב לילה' : 'מעבר למצב יום'}" aria-label="${light ? 'מעבר למצב לילה' : 'מעבר למצב יום'}">${light ? ICON_MOON : ICON_SUN}</button>`;
+  }
+  function toggleTheme(){
+    const next = curTheme() === 'light' ? 'dark' : 'light';
+    const root = document.documentElement;
+    root.classList.add('theme-anim');
+    root.setAttribute('data-theme', next);
+    setTimeout(() => root.classList.remove('theme-anim'), 400);
+    try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+    const m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', next === 'light' ? '#f7f3ea' : '#0f1a14');
+    const b = document.getElementById('themeBtn');
+    if (b) b.outerHTML = themeBtnHtml();
+    showToast(next === 'light' ? 'מצב יום' : 'מצב לילה');
+  }
+
   // ====== דף הבית ======
   let homeFilter = 'all';   // הכל / פרשות / מועדים / עיון
   function greeting(){
@@ -1157,7 +1192,7 @@
   function renderShelf(){
     const pills = [['all','הכל'], ['parashot','פרשות'], ['moadim','מועדים'], ['iyun','עיון']];
     let html = `<div class="home-top"><div><div class="greet">${greeting()}</div>
-        <div class="greet-s">שיעורי פרשה ומועדים · ${RABBI}</div></div><span class="avatar" aria-hidden="true"></span></div>
+        <div class="greet-s">שיעורי פרשה ומועדים<br>${RABBI}</div></div><span class="home-side">${themeBtnHtml()}<span class="avatar" aria-hidden="true"></span></span></div>
       <div class="pills">${pills.map(p => `<button class="pill${homeFilter === p[0] ? ' on' : ''}" data-hf="${p[0]}">${p[1]}</button>`).join('')}</div>
       <div id="installSlot">${installHtml()}</div>`;
     if (setupMode) html += `<div class="empty-box" style="margin-top:18px">האתר עדיין בהקמה — השיעורים יעלו בקרוב בעז"ה.</div>`;
