@@ -118,14 +118,6 @@
   .shiur-row:hover { box-shadow:var(--shadow-md); border-right-color:var(--accent); }
   .shiur-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .shiur-title { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px; color:var(--accent); }
-  .share-btn {
-    all:unset; cursor:pointer; display:inline-flex; align-items:center;
-    color:var(--muted); padding:4px; border-radius:4px;
-    transition:color .15s ease, background .15s ease;
-  }
-  .share-btn:hover { color:var(--accent); background:rgba(31,74,51,0.08); }
-  a.share-btn { text-decoration:none; }
-  .share-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
   .shiur-actions { display:inline-flex; align-items:center; gap:6px; flex-shrink:0; }
   .shiur-actions .text-link {
     display:inline-flex; align-items:center; gap:4px;
@@ -156,10 +148,21 @@
   .save-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
   .list-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:18px 0 10px; }
   .list-head .recent-date { margin:0; }
-  .heard-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; color:var(--line); padding:4px; border-radius:50%; }
-  .heard-btn:hover { color:var(--muted); }
-  .heard-btn.on { color:#2e7d4f; }
-  .heard-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
+  .more-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; color:var(--muted); padding:4px; border-radius:50%; }
+  .more-btn:hover, .more-btn[aria-expanded="true"] { color:var(--accent); background:rgba(31,74,51,0.08); }
+  .more-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
+  .menu {
+    position:absolute; z-index:45; min-width:210px; padding:6px 0;
+    background:#fbf7ea; border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 12px 30px rgba(38,33,26,.22);
+  }
+  .menu a, .menu button {
+    display:flex; align-items:center; gap:10px; width:100%; padding:11px 16px;
+    font-family:'Heebo',sans-serif; font-size:15px; color:var(--ink); text-decoration:none; text-align:right;
+    background:none; border:0; cursor:pointer;
+  }
+  .menu a:hover, .menu button:hover, .menu a:focus-visible, .menu button:focus-visible { background:rgba(31,74,51,.08); outline:none; }
+  .menu svg { color:var(--accent); flex-shrink:0; }
 
   /* ====== נגן קבוע בתחתית המסך ====== */
   .player {
@@ -282,6 +285,8 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="menu" id="shiurMenu" role="menu" hidden></div>
 
 <div class="player" id="player" hidden>
   <div class="player-in">
@@ -473,18 +478,63 @@
     }
   }
 
-  // כפתורי שיתוף מטופלים בהאצלת אירוע יחידה על app, כי app.innerHTML
+  // כפתורי הכרטיסים מטופלים בהאצלת אירוע יחידה על app, כי app.innerHTML
   // מוחלף בכל רינדור - כך לא צריך לחבר מחדש מאזין לכל כפתור בנפרד.
   app.addEventListener('click', (e) => {
-    const btn = e.target.closest('.share-btn');
-    if (btn) copyLink(btn.dataset.link);
     const play = e.target.closest('.play-btn');
     if (play) playShiur(play.closest('.shiur-row').dataset.path);
     const save = e.target.closest('.save-btn');
     if (save) toggleSaved(save.closest('.shiur-row').dataset.path);
-    const heard = e.target.closest('.heard-btn');
-    if (heard) toggleHeard(heard.closest('.shiur-row').dataset.path);
+    const more = e.target.closest('.more-btn');
+    if (more) openMenu(more);
   });
+
+  // ====== תפריט "אפשרויות נוספות" (⋮) של כרטיס ======
+  // תפריט אחד לכל האתר, נבנה מחדש בכל פתיחה לפי השיעור. נפתח מתחת לכפתור
+  // (או מעליו, אם אין מקום למטה), ונסגר בלחיצה בחוץ, ב-Esc או בגלילה.
+  const menuEl = document.getElementById('shiurMenu');
+  let menuFor = null;   // { path, btn }
+
+  function openMenu(btn){
+    const path = btn.closest('.shiur-row').dataset.path;
+    if (menuFor && menuFor.path === path){ closeMenu(); return; }
+    const s = byPath[path];
+    if (!s) return;
+    const done = !!(getProg(path) || {}).done;
+    menuEl.innerHTML = `
+      <a role="menuitem" href="${shiurUrl(s)}" download="${escAttr(s.filename)}" target="_blank" rel="noopener">${ICON_AUDIO_DL}<span>הורד את השיעור</span></a>
+      <button role="menuitem" data-act="copy">${ICON_LINK}<span>העתק קישור לשיעור</span></button>
+      <button role="menuitem" data-act="heard">${ICON_CHECK}<span>${done ? 'בטל סימון "נשמע"' : 'סמן כנשמע'}</span></button>`;
+    menuFor = { path, btn };
+    menuEl.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    const r = btn.getBoundingClientRect(), m = menuEl.getBoundingClientRect();
+    const below = r.bottom + 6 + m.height < window.innerHeight - (document.body.classList.contains('has-player') ? 170 : 0);
+    menuEl.style.top = (window.scrollY + (below ? r.bottom + 6 : r.top - 6 - m.height)) + 'px';
+    menuEl.style.left = Math.max(8, Math.min(r.left, window.innerWidth - m.width - 8)) + 'px';
+    const first = menuEl.querySelector('a,button');
+    if (first) first.focus({ preventScroll:true });
+  }
+  function closeMenu(){
+    if (!menuFor) return;
+    menuEl.hidden = true;
+    menuFor.btn.setAttribute('aria-expanded', 'false');
+    menuFor = null;
+  }
+  menuEl.addEventListener('click', (e) => {
+    const item = e.target.closest('a,button');
+    if (!item || !menuFor) return;
+    const s = byPath[menuFor.path];
+    if (item.dataset.act === 'copy') copyLink(directLink(s.pageKey, s.year));
+    if (item.dataset.act === 'heard') toggleHeard(menuFor.path);
+    closeMenu();
+  });
+  document.addEventListener('click', (e) => {
+    if (menuFor && !menuEl.contains(e.target) && !e.target.closest('.more-btn')) closeMenu();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+  window.addEventListener('scroll', closeMenu, { passive:true });
+  window.addEventListener('resize', closeMenu);
 
   // ====== זיכרון האזנה (התקדמות, נשמע) ======
   // נשמר בדפדפן של המכשיר בלבד (localStorage), בלי משתמשים. כל הגישה עוברת
@@ -570,9 +620,6 @@
       sb.classList.toggle('on', st.saved);
       sb.innerHTML = st.saved ? ICON_BM_ON : ICON_BM;
       sb.title = st.saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי';
-      const hb = row.querySelector('.heard-btn');
-      hb.classList.toggle('on', st.done);
-      hb.title = st.done ? 'בטל סימון "נשמע"' : 'סמן כנשמע';
       const pb = row.querySelector('.play-btn');
       pb.innerHTML = st.playing ? ICON_PAUSE : ICON_PLAY;
       pb.setAttribute('aria-label', st.playing ? 'השהה' : 'נגן');
@@ -594,6 +641,8 @@
   const audio = document.getElementById('audio');
   const playerEl = document.getElementById('player');
   const seekEl = document.getElementById('playerSeek');
+  const ICON_MORE = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>';
+  const ICON_CHECK = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>';
   const ICON_BM = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
   const ICON_BM_ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
   const ICON_PLAY = '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
@@ -617,6 +666,14 @@
     applySpeed(); updateSpeedBtn();
   });
   updateSpeedBtn();
+
+  // קישור לסיכום ה-PDF של שיעור (אותו נתיב, סיומת pdf), או null אם אין
+  function summaryUrl(s){
+    const pdfPath = s.path.replace(/\.(m4a|mp3)$/i, '.pdf');
+    if (!pdfPaths.has(pdfPath)) return null;
+    const pdfVer = pdfVersions[pdfPath];
+    return R2_BASE.replace(/\/$/,'') + '/' + pdfPath.split('/').map(encodeURIComponent).join('/') + (pdfVer ? '?v=' + encodeURIComponent(pdfVer) : '');
+  }
 
   function shiurUrl(s){ return R2_BASE.replace(/\/$/,'') + '/' + s.path.split('/').map(encodeURIComponent).join('/'); }
 
@@ -965,12 +1022,8 @@
   function shiurRowHtml(s, key, hl, isTarget, withName){
     const title = shiurTitle(s, key, withName);
     const st = cardState(s.path);
-    const audioUrl = shiurUrl(s);
-    const shareUrl = directLink(key, s.year);
-    const pdfPath = s.path.replace(/\.(m4a|mp3)$/i, '.pdf');
-    const hasSummary = pdfPaths.has(pdfPath);
-    const pdfVer = pdfVersions[pdfPath];
-    const pdfUrl = R2_BASE.replace(/\/$/,'') + '/' + pdfPath.split('/').map(encodeURIComponent).join('/') + (pdfVer ? '?v=' + encodeURIComponent(pdfVer) : '');
+    const pdfUrl = summaryUrl(s);
+    const hasSummary = !!pdfUrl;
     return `<div class="shiur-row${hl ? ' hl' : ''}${st.done ? ' is-done' : ''}${st.isCur ? ' playing' : ''}" data-path="${escAttr(s.path)}"${isTarget ? ' id="target-year"' : ''}>
         <div class="shiur-head">
           <span class="shiur-title">${title}</span>
@@ -980,10 +1033,8 @@
           <span class="shiur-meta">${st.meta}</span>
           <span class="shiur-actions">
             ${hasSummary ? `<a class="text-link" href="${pdfUrl}" target="_blank" rel="noopener" title="הורד סיכום השיעור">${ICON_DOWNLOAD} סיכום</a>` : ''}
-            <a class="share-btn" href="${audioUrl}" download="${escAttr(s.filename)}" target="_blank" rel="noopener" title="הורד את השיעור" aria-label="הורד את השיעור">${ICON_AUDIO_DL}</a>
-            <button class="share-btn" data-link="${escAttr(shareUrl)}" title="העתק קישור לשיעור זה" aria-label="העתק קישור לשיעור זה">${ICON_LINK}</button>
             <button class="save-btn${st.saved ? ' on' : ''}" title="${st.saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי'}" aria-label="שמירה לרשימה שלי">${st.saved ? ICON_BM_ON : ICON_BM}</button>
-            <button class="heard-btn${st.done ? ' on' : ''}" title="${st.done ? 'בטל סימון &quot;נשמע&quot;' : 'סמן כנשמע'}" aria-label="סימון נשמע"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.5 3 3 6-6.5"/></svg></button>
+            <button class="more-btn" title="אפשרויות נוספות" aria-label="אפשרויות נוספות" aria-haspopup="menu">${ICON_MORE}</button>
           </span>
         </div>
         <div class="shiur-bar"><i style="width:${st.pct}%"></i></div>
