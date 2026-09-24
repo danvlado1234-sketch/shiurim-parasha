@@ -16,8 +16,10 @@
 <meta property="og:image:width" content="2000">
 <meta property="og:image:height" content="1500">
 <meta name="twitter:card" content="summary_large_image">
-<!-- אפליקציה: התקנה למסך הבית (manifest + sw.js), אייקון, צבע שורת המצב -->
-<link rel="manifest" href="manifest.webmanifest">
+<!-- אפליקציה: התקנה למסך הבית, אייקון, צבע שורת המצב. ההתקנה היא של האפליקציה
+     המאוחדת "שיעורי הרב" (ה-manifest בדף השער, scope "/") - פרשות ומשניות יחד.
+     manifest.webmanifest שבתיקייה הזו נשאר רק בשביל אפליקציית הפרשות הישנה. -->
+<link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#0f1a14">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -171,6 +173,10 @@
   .install-gr { flex:1; min-width:0; }
   .install-t { font-weight:700; font-size:14.5px; }
   .install-s { font-size:12.5px; color:var(--muted); margin-top:1px; line-height:1.4; }
+  a.install-go { text-decoration:none; }
+  .all-link { display:inline-flex; align-items:center; gap:3px; margin:12px 18px 0; padding:6px 12px 6px 11px; border-radius:999px;
+    background:var(--surface2); color:var(--text2); font-size:13px; font-weight:600; text-decoration:none; }
+  .all-link + .home-top { padding-top:10px; }
   .install-go { background:var(--btn); color:var(--btn-ink); border:0; border-radius:18px; padding:7px 14px; font-weight:700; font-size:13.5px; cursor:pointer; flex-shrink:0; }
   .install-x { background:none; border:0; color:var(--muted); cursor:pointer; padding:4px; flex-shrink:0; display:inline-flex; }
 
@@ -557,6 +563,7 @@
   const ICON_SEARCH = svg(17, '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>');
   const ICON_SHARE = svg(21, '<path d="M4 12v7h16v-7"/><path d="M12 3v12"/><path d="m8 7 4-4 4 4"/>');
   const ICON_X     = svg(18, '<path d="M6 6l12 12M18 6 6 18"/>');
+  const ICON_UP    = svg(15, '<path d="m9 6 6 6-6 6"/>', 'fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"');
 
   // בונה קישור ישיר לפרשה+שנה מסוימת
   function directLink(key, year){
@@ -629,6 +636,7 @@
     if (t.closest('#playListBtn')){ playList(); return; }
     if (t.closest('#installGo')){ doInstall(); return; }
     if (t.closest('#installX')){ dismissInstall(); return; }
+    if (t.closest('#migrateX')){ dismissMigrate(); return; }
   });
 
   // ====== תפריט "אפשרויות נוספות" (⋮) של כרטיס ======
@@ -1191,7 +1199,7 @@
 
   function renderShelf(){
     const pills = [['all','הכל'], ['parashot','פרשות'], ['moadim','מועדים'], ['iyun','עיון']];
-    let html = `<div class="home-top"><div><div class="greet">${greeting()}</div>
+    let html = `${inUnifiedApp() ? `<a class="all-link" href="/">${ICON_UP}כל השיעורים</a>` : ''}<div class="home-top"><div><div class="greet">${greeting()}</div>
         <div class="greet-s">שיעורי פרשה ומועדים<br>${RABBI}</div></div><span class="home-side">${themeBtnHtml()}<span class="avatar" aria-hidden="true"></span></span></div>
       <div class="pills">${pills.map(p => `<button class="pill${homeFilter === p[0] ? ' on' : ''}" data-hf="${p[0]}">${p[1]}</button>`).join('')}</div>
       <div id="installSlot">${installHtml()}</div>`;
@@ -1518,9 +1526,10 @@
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   function installDismissed(){ try { return !!localStorage.getItem(INSTALL_KEY); } catch (e) { return false; } }
   function installHtml(){
-    if (isStandalone() || installDismissed() || !(installEvt || isIOS)) return '';
-    const sub = installEvt ? 'גישה מהירה ממסך הבית, במסך מלא' : 'בספארי: כפתור השיתוף ⎋ ואז "הוסף למסך הבית"';
-    return `<div class="install"><img src="icons/icon-192.png" alt="">
+    if (isStandalone()) return migrateHtml();
+    if (installDismissed() || !(installEvt || isIOS)) return '';
+    const sub = installEvt ? 'פרשות ומשניות במקום אחד, ממסך הבית' : 'בספארי: כפתור השיתוף ⎋ ואז "הוסף למסך הבית"';
+    return `<div class="install"><img src="${installEvt ? '/icons/icon-192.png' : 'icons/icon-192.png'}" alt="">
       <div class="install-gr"><div class="install-t">התקינו את האפליקציה</div><div class="install-s">${sub}</div></div>
       ${installEvt ? '<button class="install-go" id="installGo">התקנה</button>' : ''}
       <button class="install-x" id="installX" aria-label="סגור">${ICON_X}</button></div>`;
@@ -1534,6 +1543,34 @@
     installEvt.userChoice.finally(() => { installEvt = null; refreshInstall(); });
   }
   function dismissInstall(){ try { localStorage.setItem(INSTALL_KEY, '1'); } catch (e) {} refreshInstall(); }
+
+  // ====== מעבר לאפליקציה המאוחדת (ספטמבר 2026) ======
+  // מעכשיו יש אפליקציה אחת לכל השיעורים ("שיעורי הרב"), שנפתחת בדף השער
+  // ומסמנת את החלון (sessionStorage) ואת המכשיר (localStorage). כאן מבחינים:
+  // - בתוך האפליקציה החדשה: קישור "כל השיעורים" חזרה לדף השער.
+  // - באפליקציית הפרשות הישנה: הודעה להתקין את החדשה (ואחר כך למחוק את הישנה).
+  //   הישנה ממשיכה לעבוד כרגיל. אם במכשיר כבר נפתחה האפליקציה החדשה - לא
+  //   מציגים את ההודעה (אי אפשר לדעת בוודאות באיזו מהשתיים אנחנו).
+  // ?app=1 מגיע מקיצור הדרך "פרשת שבוע" של האפליקציה החדשה.
+  if (new URLSearchParams(location.search).has('app')){
+    try { sessionStorage.setItem('shiurim:app', '1'); } catch (e) {}
+    const u = new URL(location.href); u.searchParams.delete('app');
+    history.replaceState(null, '', u.pathname + u.search);
+  }
+  function unifiedSeen(){ try { return sessionStorage.getItem('shiurim:app') === '1' || localStorage.getItem('shiurim:unified') === '1'; } catch (e) { return false; } }
+  function inUnifiedApp(){ return isStandalone() && unifiedSeen(); }
+  const MIGRATE_KEY = 'parasha:migrateDismissed';
+  function migrateHtml(){
+    if (unifiedSeen()) return '';
+    // נסגרה - חוזרת אחרי שבוע
+    try { if (Date.now() - (+localStorage.getItem(MIGRATE_KEY) || 0) < 7 * 864e5) return ''; } catch (e) {}
+    return `<div class="install"><img src="/icons/icon-192.png" alt="">
+      <div class="install-gr"><div class="install-t">יש אפליקציה חדשה לכל השיעורים</div>
+        <div class="install-s">פרשות ומשניות יחד. אחרי ההתקנה אפשר למחוק את זו.</div></div>
+      <a class="install-go" href="/?install=1" target="_blank" rel="noopener">להתקנה</a>
+      <button class="install-x" id="migrateX" aria-label="סגור">${ICON_X}</button></div>`;
+  }
+  function dismissMigrate(){ try { localStorage.setItem(MIGRATE_KEY, String(Date.now())); } catch (e) {} refreshInstall(); }
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   // ====== קישור שנפתח כשהאפליקציה כבר פתוחה ======
