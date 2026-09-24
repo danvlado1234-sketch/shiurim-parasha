@@ -59,6 +59,27 @@ Write-Host "  העלאת שיעורי פרשת שבוע - תהליך אוטומ�
 Write-Host "==============================================" -ForegroundColor Cyan
 Write-Host ""
 
+# ---- משיכת עדכונים מ-GitHub (נוסף ספטמבר 2026) ----
+# בעיה שהתעוררה בפועל: אחרי שינוי שנעשה ישירות ב-GitHub (עריכה באתר או
+# מיזוג PR), הדחיפה בשלב 3 נדחתה ("rejected - fetch first") והאתר לא
+# התעדכן, עד שהריצו git pull ידנית. עכשיו מושכים בתחילת כל הרצה, לפני
+# שנוגעים בכלום. קבצי שמע/PDF חסומים ב-.gitignore, אז זה לא נוגע בהם.
+# אם המשיכה נכשלת (אין אינטרנט, התנגשות) - מבטלים מיזוג חלקי ומדווחים,
+# וממשיכים: ההעלאה לענן לא תלויה בזה.
+Write-Host "[0/4] מושך עדכונים מ-GitHub..." -ForegroundColor Yellow
+Write-Status "מושך עדכונים מ-GitHub..."
+git pull origin main --no-rebase --no-edit
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "      מעודכן." -ForegroundColor Green
+} else {
+    # רק אם באמת נשאר מיזוג חלקי (בלי 2>$null: ב-PowerShell 5 עם Stop, פלט
+    # שגיאה מופנה של git עוצר את כל הסקריפט)
+    if (Test-Path (Join-Path $root '.git\MERGE_HEAD')) { git merge --abort }
+    Write-Host "      !! המשיכה מ-GitHub נכשלה - ממשיך בכל זאת (ייתכן שהפרסום באתר ייכשל)" -ForegroundColor Red
+    Write-Status "המשיכה מ-GitHub נכשלה - ממשיך בכל זאת." -Kind error
+}
+Write-Host ""
+
 # ---- תיקון אוטומטי לשמות קבצים ----
 # וואטסאפ שומר הודעות קוליות בתור .mp4 (קונטיינר שמע, לא וידאו), ולא .m4a.
 # בודקים בתוך הקובץ (לא רק לפי הסיומת) שאין בו track וידאו לפני שנוגעים בו -
@@ -203,7 +224,9 @@ if ($changes) {
         Write-Host "      נדחף ל-GitHub בהצלחה!" -ForegroundColor Green
         Write-Status "האתר עודכן בהצלחה." -Kind done
     } else {
-        Write-Host "      !! שגיאה בדחיפה ל-GitHub" -ForegroundColor Red
+        Write-Host "      !! שגיאה בדחיפה ל-GitHub. לתיקון להריץ כאן:" -ForegroundColor Red
+        Write-Host "         git pull origin main --no-rebase --no-edit" -ForegroundColor Red
+        Write-Host "         git push origin HEAD:main" -ForegroundColor Red
         Write-Status "פרסום העדכון באתר נכשל." -Kind error
     }
 } else {
