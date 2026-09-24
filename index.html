@@ -1536,6 +1536,24 @@
   function dismissInstall(){ try { localStorage.setItem(INSTALL_KEY, '1'); } catch (e) {} refreshInstall(); }
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
+  // ====== קישור שנפתח כשהאפליקציה כבר פתוחה ======
+  // ה-manifest מבקש focus-existing: קישור לאתר (מוואטסאפ, מייל) מביא לקדמה את
+  // חלון האפליקציה הפתוח ומעביר לכאן את הכתובת - בלי לטעון את הדף מחדש, כדי
+  // שלא לעצור שיעור שמתנגן. עוברים לדף המבוקש בתוך האפליקציה.
+  let loaded = false;
+  if ('launchQueue' in window){
+    window.launchQueue.setConsumer((params) => {
+      if (!params || !params.targetURL) return;
+      const u = new URL(params.targetURL);
+      if (u.pathname + u.search === location.pathname + location.search) return;   // הפתיחה הרגילה
+      history.pushState(null, '', u.pathname + u.search);
+      if (sheetOpen) hideSheet();
+      if (!loaded) return;   // הטעינה הראשונה תקרא את הכתובת לבד
+      view = viewFromUrl();
+      render(); scrollTop();
+    });
+  }
+
   // ====== טעינה ======
   function load(){
     if (R2_BASE.indexOf('PASTE_') === 0){
@@ -1573,6 +1591,7 @@
         // (?parasha=...&year=..., ?new=1, ?list=1) ורענון הדף בכל עומק ניווט
         updateBadges();
         view = viewFromUrl();
+        loaded = true;
         render();
         return true;
       })
