@@ -71,7 +71,7 @@
   #app.fade-in { animation: fadeSlideIn .28s ease both; }
 
   @media (prefers-reduced-motion: reduce) {
-    .volume, .parasha-row, .shiur-row, #app.fade-in, .refresh-spin { animation:none !important; transition:none !important; }
+    .volume, .parasha-row, .shiur-row, #app.fade-in { animation:none !important; transition:none !important; }
   }
 
   .breadcrumb { margin-bottom:18px; display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
@@ -144,24 +144,6 @@
   .speed-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
   audio { width:100%; }
 
-  .refresh-row { text-align:left; margin-bottom:18px; }
-  .refresh-btn {
-    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
-    font-family:'Heebo',sans-serif; font-size:13px; color:var(--accent);
-    background:#fbf7ea; border:1px solid var(--accent); padding:6px 14px; border-radius:20px;
-    box-shadow:var(--shadow-sm);
-    transition:background .15s ease, color .15s ease, box-shadow .15s ease;
-  }
-  .refresh-btn:hover { background:var(--accent); color:var(--paper); box-shadow:var(--shadow-sm); }
-  .refresh-btn:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
-  .refresh-btn.is-loading { cursor:default; opacity:.85; }
-  .refresh-spin {
-    width:12px; height:12px; border:2px solid currentColor; border-top-color:transparent;
-    border-radius:50%; display:none; flex-shrink:0;
-  }
-  .refresh-btn.is-loading .refresh-spin { display:inline-block; animation:spin .7s linear infinite; }
-  @keyframes spin { to { transform:rotate(360deg); } }
-
   .toast {
     position:fixed; bottom:26px; left:50%; transform:translateX(-50%) translateY(16px);
     background:var(--ink); color:var(--paper); padding:11px 22px; border-radius:22px;
@@ -201,6 +183,24 @@
   .suggest .none { padding:12px 18px; color:var(--muted); font-size:14.5px; }
   .shiur-row.hl { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
 
+  /* בלוק "השבוע" בדף הבית - פרשת השבוע והמועד הקרוב, לפי הלוח העברי */
+  .weekly {
+    background:rgba(251,247,234,.97); border:1px solid var(--line); border-top:4px solid var(--brass);
+    border-radius:8px; padding:14px 16px 4px; margin-bottom:22px; box-shadow:var(--shadow-md);
+    animation: rowIn .3s ease both;
+  }
+  .weekly-label { font-size:13px; font-weight:700; color:var(--brass); letter-spacing:.5px; margin-bottom:10px; }
+  .weekly-item + .weekly-item { border-top:1px solid var(--line); padding-top:14px; }
+  .weekly-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .weekly-title { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:22px; color:var(--accent); }
+  .weekly-all {
+    font-family:'Heebo',sans-serif; font-size:13.5px; color:var(--accent); cursor:pointer;
+    background:none; border:0; padding:2px 0; text-decoration:underline; text-underline-offset:3px;
+  }
+  .weekly-all:hover { color:var(--brass); }
+  .weekly-all:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
+  .weekly .shiur-row { box-shadow:none; animation:none; }
+
   .no-content, .note {
     background:#fbf7ea; border:1px dashed var(--line); border-radius:6px;
     padding:22px; text-align:center; color:var(--muted); font-size:15px; line-height:1.6;
@@ -221,15 +221,9 @@
     </div>
     <p class="meta" id="headerMeta">טוען…</p>
   </header>
-  <div class="refresh-row">
-    <button class="refresh-btn" id="refreshBtn">
-      <span class="refresh-spin" aria-hidden="true"></span>
-      <span id="refreshLabel">בדוק שיעורים חדשים</span>
-    </button>
-  </div>
   <div class="search-row">
     <svg class="search-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-    <input type="text" class="search-input" id="searchInput" placeholder="חיפוש פרשה או מועד — אפשר גם עם שנה: נח תשפה" autocomplete="off">
+    <input type="text" class="search-input" id="searchInput" placeholder="פרשה או מועד, למשל: נח תשפה" autocomplete="off">
     <div class="suggest" id="suggest" hidden></div>
   </div>
   <div id="app"></div>
@@ -506,7 +500,7 @@
 
   function renderShelf(){
     headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
-    let html = '<div class="shelf">';
+    let html = `<div id="weekly">${weeklyHtml()}</div><div class="shelf">`;
     for (const c of CHUMASHIM){
       let count = 0;
       for (const key of pageKeysOf(c)) count += (index[key] || []).length;
@@ -521,6 +515,109 @@
     app.querySelectorAll('.volume').forEach(btn => {
       btn.addEventListener('click', () => { view = { type:'chumash', name:btn.dataset.chumash }; render(); scrollTop(); });
     });
+  }
+
+  // ====== השבוע: פרשת השבוע והמועד הקרוב ======
+  // מחושב בדפדפן לפי הלוח העברי (ספריית hebcal, מנהג ארץ ישראל), בלי שום
+  // מידע מההעלאה. מועד מוצג משבוע לפניו ועד סופו; פרשה - של השבת הקרובה.
+  // מוצגים רק דפים שיש בהם שיעורים, עם השיעור החדש ביותר מוכן להשמעה.
+  // אם הספרייה לא נטענה (אין אינטרנט לרגע, חסימה) - הבלוק פשוט לא מופיע.
+  let weeklyKeys = [];
+
+  // שמות הפרשות אצל hebcal -> השמות באתר (הכתיב העברי של hebcal שונה
+  // לפעמים, למשל "מצרע", "בחקתי" - לכן ממפים מהשם הלועזי הקבוע)
+  const HEBCAL_PARASHA = {
+    'Bereshit':'בראשית','Noach':'נח','Lech-Lecha':'לך לך','Vayera':'וירא','Chayei Sara':'חיי שרה',
+    'Toldot':'תולדות','Vayetzei':'ויצא','Vayishlach':'וישלח','Vayeshev':'וישב','Miketz':'מקץ',
+    'Vayigash':'ויגש','Vayechi':'ויחי','Shemot':'שמות','Vaera':'וארא','Bo':'בא','Beshalach':'בשלח',
+    'Yitro':'יתרו','Mishpatim':'משפטים','Terumah':'תרומה','Tetzaveh':'תצוה','Ki Tisa':'כי תשא',
+    'Vayakhel':'ויקהל','Pekudei':'פקודי','Vayikra':'ויקרא','Tzav':'צו','Shmini':'שמיני',
+    'Tazria':'תזריע','Metzora':'מצורע','Achrei Mot':'אחרי מות','Kedoshim':'קדושים','Emor':'אמור',
+    'Behar':'בהר','Bechukotai':'בחוקותי','Bamidbar':'במדבר','Nasso':'נשא',"Beha'alotcha":'בהעלותך',
+    "Sh'lach":'שלח','Korach':'קרח','Chukat':'חוקת','Balak':'בלק','Pinchas':'פינחס','Matot':'מטות',
+    'Masei':'מסעי','Devarim':'דברים','Vaetchanan':'ואתחנן','Eikev':'עקב',"Re'eh":'ראה',
+    'Shoftim':'שופטים','Ki Teitzei':'כי תצא','Ki Tavo':'כי תבוא','Nitzavim':'נצבים',
+    'Vayeilech':'וילך',"Ha'azinu":'האזינו','Vezot Haberakhah':'וזאת הברכה'
+  };
+  const HEBCAL_MOED = [
+    [/^(Erev )?Rosh Hashana( \d+| II)?$/, 'ראש השנה'], [/^(Erev )?Yom Kippur$/, 'יום כיפור'],
+    [/^(Erev )?Sukkot/, 'סוכות'], [/^(Shmini Atzeret|Simchat Torah)$/, 'שמחת תורה'],
+    [/^Chanukah/, 'חנוכה'], [/^Asara B'Tevet$/, 'עשרה בטבת'], [/^Tu BiShvat$/, 'טו בשבט'],
+    [/^Ta'anit Esther$/, 'תענית אסתר'], [/^(Erev |Shushan )?Purim$/, 'פורים'],
+    [/^(Erev )?Pesach( [IV]+)?( \(CH''M\))?$/, 'פסח'], [/^Lag BaOmer$/, 'לג בעומר'],
+    [/^(Erev )?Shavuot( I+)?$/, 'שבועות'], [/^Tzom Tammuz$/, 'שבעה עשר בתמוז'],
+    [/^(Erev )?Tish'a B'Av$/, 'תשעה באב']
+  ];
+
+  function computeWeekly(hc, today){
+    const day = 24 * 3600 * 1000;
+    const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const events = hc.HebrewCalendar.calendar({
+      start: new Date(t0 - 30 * day), end: new Date(t0 + 8 * day),
+      sedrot: true, il: true, noModern: true, noRoshChodesh: true, noSpecialShabbat: true
+    });
+    const moedSpan = {};   // מועד -> [תאריך ראשון, תאריך אחרון] בטווח
+    let parasha = null;
+    for (const ev of events){
+      const t = ev.getDate().greg().getTime();
+      if (ev.parsha){   // אירוע פרשת שבוע: השבת הקרובה בלבד (היום עד עוד 7 ימים)
+        if (!parasha && t >= t0 && t <= t0 + 7 * day) parasha = ev.parsha;
+        continue;
+      }
+      const desc = ev.getDesc();
+      const hit = HEBCAL_MOED.find(m => m[0].test(desc));
+      if (!hit) continue;
+      const span = moedSpan[hit[1]] || (moedSpan[hit[1]] = [t, t]);
+      span[0] = Math.min(span[0], t); span[1] = Math.max(span[1], t);
+    }
+    const keys = Object.keys(moedSpan)
+      .filter(k => moedSpan[k][0] - 7 * day <= t0 && t0 <= moedSpan[k][1])
+      .sort((a, b) => moedSpan[a][0] - moedSpan[b][0]);
+    if (parasha){
+      for (const p of parasha){
+        const name = HEBCAL_PARASHA[p];
+        const key = name && (pairKeyOf[name] || name);
+        if (key && !keys.includes(key)) keys.push(key);
+      }
+    }
+    return keys;
+  }
+
+  function weeklyHtml(){
+    const keys = weeklyKeys.filter(k => (index[k] || []).length);
+    if (!keys.length) return '';
+    let html = '<section class="weekly" aria-label="השבוע"><div class="weekly-label">השבוע</div>';
+    for (const key of keys){
+      const all = sortedShiurim(key);
+      const latest = all[0];
+      html += `<div class="weekly-item">
+        <div class="weekly-head">
+          <span class="weekly-title">${itemLabel(key, pairLabel[key] || key)}</span>
+          ${all.length > 1 ? `<button class="weekly-all" data-key="${key}">לכל ${all.length} השיעורים ←</button>` : ''}
+        </div>
+        ${shiurRowHtml(latest, key, false, false)}
+      </div>`;
+    }
+    return html + '</section>';
+  }
+
+  // "לכל השיעורים" - האצלת אירוע, כי הבלוק נבנה מחדש בכל רינדור של דף הבית
+  app.addEventListener('click', (e) => {
+    const btn = e.target.closest('.weekly-all');
+    if (btn){ view = { type:'parasha', key:btn.dataset.key }; render(); scrollTop(); }
+  });
+
+  // הספרייה נטענת אחרי שהאתר כבר מוצג, כדי לא לעכב את הטעינה הראשונה
+  function loadWeekly(){
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/@hebcal/core@5.10.1/dist/bundle.min.js';
+    sc.async = true;
+    sc.onload = () => {
+      try { weeklyKeys = computeWeekly(window.hebcal, new Date()); } catch (e) { return; }
+      const box = document.getElementById('weekly');
+      if (box) box.innerHTML = weeklyHtml();
+    };
+    document.head.appendChild(sc);
   }
 
   function renderChumash(name){
@@ -546,35 +643,26 @@
     });
   }
 
-  function renderParasha(key){
-    headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
-    const chumash = chumashOf(key);
-    const label = pairLabel[key] || key;
-    const shiurim = (index[key] || []).slice()
+  // שיעורי דף מסוים, מהחדש לישן (ובאותה שנה: לפי שיעור ואז לפי חלק)
+  function sortedShiurim(key){
+    return (index[key] || []).slice()
       .sort((a,b) => yearValue(b.year) - yearValue(a.year)
         || (a.lesson||'').localeCompare(b.lesson||'')
         || (a.part||'').localeCompare(b.part||''));
-    const backLabel = chumash === 'מועדים' ? 'חזרה למועדים' : ('חזרה לחומש ' + chumash);
-    let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ ${backLabel}</button></div>
-      <h2 class="page-title">${itemLabel(key, label)}</h2>
-      <p class="page-sub">כל השיעורים, מהחדש לישן</p>`;
-    if (!shiurim.length){
-      html += `<div class="no-content">אין עדיין שיעורים ל${itemNounOf(key)}</div>`;
-    }
-    let marked = false;
-    for (const s of shiurim){
-      const title = `${s.name === key ? '' : s.name + ' · '}${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}${s.shabbatName ? ' · ' + s.shabbatName : ''}${s.isIyun ? ' · עיון' : ''}`;
-      const type = /\.m4a$/i.test(s.filename) ? 'audio/mp4' : 'audio/mpeg';
-      const url = R2_BASE.replace(/\/$/,'') + '/' + s.path.split('/').map(encodeURIComponent).join('/');
-      const hl = view.year && s.year === view.year;
-      const id = hl && !marked ? ' id="target-year"' : '';
-      if (hl) marked = true;
-      const shareUrl = directLink(key, s.year);
-      const pdfPath = s.path.replace(/\.(m4a|mp3)$/i, '.pdf');
-      const hasSummary = pdfPaths.has(pdfPath);
-      const pdfVer = pdfVersions[pdfPath];
-      const pdfUrl = R2_BASE.replace(/\/$/,'') + '/' + pdfPath.split('/').map(encodeURIComponent).join('/') + (pdfVer ? '?v=' + encodeURIComponent(pdfVer) : '');
-      html += `<div class="shiur-row${hl ? ' hl' : ''}"${id}>
+  }
+
+  // כרטיס שיעור אחד (כותרת, מהירות, סיכום, שיתוף, נגן) - משותף לדף הפרשה
+  // ולבלוק "השבוע" בדף הבית
+  function shiurRowHtml(s, key, hl, isTarget){
+    const title = `${s.name === key ? '' : s.name + ' · '}${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}${s.shabbatName ? ' · ' + s.shabbatName : ''}${s.isIyun ? ' · עיון' : ''}`;
+    const type = /\.m4a$/i.test(s.filename) ? 'audio/mp4' : 'audio/mpeg';
+    const url = R2_BASE.replace(/\/$/,'') + '/' + s.path.split('/').map(encodeURIComponent).join('/');
+    const shareUrl = directLink(key, s.year);
+    const pdfPath = s.path.replace(/\.(m4a|mp3)$/i, '.pdf');
+    const hasSummary = pdfPaths.has(pdfPath);
+    const pdfVer = pdfVersions[pdfPath];
+    const pdfUrl = R2_BASE.replace(/\/$/,'') + '/' + pdfPath.split('/').map(encodeURIComponent).join('/') + (pdfVer ? '?v=' + encodeURIComponent(pdfVer) : '');
+    return `<div class="shiur-row${hl ? ' hl' : ''}"${isTarget ? ' id="target-year"' : ''}>
         <div class="shiur-head">
           <span class="shiur-title">${title}</span>
           <span class="shiur-actions">
@@ -585,6 +673,25 @@
         </div>
         <audio controls preload="none"><source src="${url}" type="${type}"></audio>
       </div>`;
+  }
+
+  function renderParasha(key){
+    headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
+    const chumash = chumashOf(key);
+    const label = pairLabel[key] || key;
+    const shiurim = sortedShiurim(key);
+    const backLabel = chumash === 'מועדים' ? 'חזרה למועדים' : ('חזרה לחומש ' + chumash);
+    let html = `<div class="breadcrumb">${BREADCRUMB_HOME}<button id="backBtn">→ ${backLabel}</button></div>
+      <h2 class="page-title">${itemLabel(key, label)}</h2>
+      <p class="page-sub">כל השיעורים, מהחדש לישן</p>`;
+    if (!shiurim.length){
+      html += `<div class="no-content">אין עדיין שיעורים ל${itemNounOf(key)}</div>`;
+    }
+    let marked = false;
+    for (const s of shiurim){
+      const hl = view.year && s.year === view.year;
+      html += shiurRowHtml(s, key, hl, hl && !marked);
+      if (hl) marked = true;
     }
     app.innerHTML = html;
     bindHomeBtn();
@@ -703,12 +810,9 @@
   });
 
   // ====== טעינה ======
-  // מחזיר הבטחה שנפתרת ל-true/false, כדי שכפתור הרענון יוכל לדווח למשתמש
-  // בפועל מה קרה, ולא רק לרנדר בשקט.
   function load(){
     if (R2_BASE.indexOf('PASTE_') === 0){
       document.querySelector('.search-row').hidden = true;  // אין מה לחפש עדיין
-      document.querySelector('.refresh-row').hidden = true;
       setupMode = true;
       view = { type:'shelf' }; render();
       return Promise.resolve(true);
@@ -752,23 +856,7 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
   }
 
-  const refreshBtn = document.getElementById('refreshBtn');
-  const refreshLabel = document.getElementById('refreshLabel');
-  refreshBtn.addEventListener('click', () => {
-    if (refreshBtn.classList.contains('is-loading')) return;
-    refreshBtn.classList.add('is-loading');
-    refreshLabel.textContent = 'בודק…';
-    const before = totalCount();
-    load().then(ok => {
-      refreshBtn.classList.remove('is-loading');
-      refreshLabel.textContent = 'בדוק שיעורים חדשים';
-      if (!ok){ showToast('לא הצלחנו להתחבר לשרת — נסו שוב בעוד רגע'); return; }
-      const added = totalCount() - before;
-      showToast(added > 0 ? `נמצאו ${added} שיעורים חדשים` : 'הרשימה מעודכנת — אין חדש');
-    });
-  });
-
-  load();
+  load().then(loadWeekly);
 })();
 </script>
 <script>
