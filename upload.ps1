@@ -3,7 +3,8 @@
 #  1. מעלה ל-R2   2. מייצר list.json
 #  3. דוחף ל-GitHub   4. שולח מייל לרשימת תפוצה
 #  שימוש: powershell -ExecutionPolicy Bypass -File .\upload.ps1
-#  עם -NoEmail: אותו דבר, בלי שלב המייל (למשל בהעלאת גיבוי/backlog)
+#  עם -NoEmail: אותו דבר, בלי שלב המייל ובלי רישום ב"חדש השבוע" באתר
+#  (להשלמת שיעורים משנים קודמות - "העלה בלי מייל.bat")
 # ============================================================
 param([switch]$NoEmail)
 
@@ -207,6 +208,26 @@ foreach ($f in ($files | Where-Object { $_ -match '\.pdf$' })) {
 }
 $versionsJson = if ($pdfVersions.Count) { $pdfVersions | ConvertTo-Json -Depth 2 } else { '{}' }
 [System.IO.File]::WriteAllText((Join-Path $root 'pdf-versions.json'), $versionsJson, (New-Object System.Text.UTF8Encoding($false)))
+
+# תאריך העלאה לכל שיעור חדש (uploads.json) - ממנו האתר בונה את "חדש השבוע".
+# בהעלאת השלמות (-NoEmail) לא רושמים, כדי ששיעורים ישנים לא יופיעו שם כחדשים.
+# קוראים עם UTF-8 מפורש (ראו ההערה על list.json למעלה).
+$uploadsPath = Join-Path $root 'uploads.json'
+$uploads = [ordered]@{}
+if (Test-Path $uploadsPath) {
+    try {
+        $rawUploads = [System.IO.File]::ReadAllText($uploadsPath, [System.Text.Encoding]::UTF8)
+        foreach ($um in [regex]::Matches($rawUploads, '"((?:[^"\\]|\\.)*)"\s*:\s*"(\d{4}-\d{2}-\d{2})"')) {
+            $uploads[$um.Groups[1].Value] = $um.Groups[2].Value
+        }
+    } catch { $uploads = [ordered]@{} }
+}
+if (-not $NoEmail -and $newAudioPaths.Count -gt 0) {
+    $today = Get-Date -Format "yyyy-MM-dd"
+    foreach ($f in $newAudioPaths) { $uploads[$f] = $today }
+}
+$uploadsJson = if ($uploads.Count) { $uploads | ConvertTo-Json -Depth 2 } else { '{}' }
+[System.IO.File]::WriteAllText($uploadsPath, $uploadsJson, (New-Object System.Text.UTF8Encoding($false)))
 Write-Host ("      list.json נוצר עם " + $files.Count + " קבצים.") -ForegroundColor Green
 Write-Status "רשימת השיעורים עודכנה." -Kind done
 Write-Host ""
@@ -214,8 +235,8 @@ Write-Host ""
 # ---- שלב 3: דחיפה ל-GitHub ----
 Write-Host "[3/4] דוחף ל-GitHub..." -ForegroundColor Yellow
 Write-Status "[3/4] מפרסם את העדכון באתר..."
-git add list.json pdf-versions.json index.html 2>$null
-$changes = git status --porcelain list.json pdf-versions.json index.html
+git add list.json pdf-versions.json uploads.json index.html 2>$null
+$changes = git status --porcelain list.json pdf-versions.json uploads.json index.html
 if ($changes) {
     $stamp = Get-Date -Format "yyyy-MM-dd HH:mm"
     git commit -m "עדכון שיעורים $stamp" | Out-Null

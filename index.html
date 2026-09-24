@@ -183,23 +183,23 @@
   .suggest .none { padding:12px 18px; color:var(--muted); font-size:14.5px; }
   .shiur-row.hl { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
 
-  /* בלוק "השבוע" בדף הבית - פרשת השבוע והמועד הקרוב, לפי הלוח העברי */
-  .weekly {
-    background:rgba(251,247,234,.97); border:1px solid var(--line); border-top:4px solid var(--brass);
-    border-radius:8px; padding:14px 16px 4px; margin-bottom:22px; box-shadow:var(--shadow-md);
-    animation: rowIn .3s ease both;
+  /* כפתור "חדש השבוע" - במקום שבו היה "בדוק שיעורים חדשים" */
+  .recent-row { text-align:left; margin-bottom:18px; }
+  .recent-btn {
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    font-family:'Heebo',sans-serif; font-size:14px; font-weight:600; color:var(--accent);
+    background:#fbf7ea; border:1px solid var(--accent); padding:7px 16px; border-radius:20px;
+    box-shadow:var(--shadow-sm);
+    transition:background .15s ease, color .15s ease;
   }
-  .weekly-label { font-size:13px; font-weight:700; color:var(--brass); letter-spacing:.5px; margin-bottom:10px; }
-  .weekly-item + .weekly-item { border-top:1px solid var(--line); padding-top:14px; }
-  .weekly-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
-  .weekly-title { font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:22px; color:var(--accent); }
-  .weekly-all {
-    font-family:'Heebo',sans-serif; font-size:13.5px; color:var(--accent); cursor:pointer;
-    background:none; border:0; padding:2px 0; text-decoration:underline; text-underline-offset:3px;
+  .recent-btn:hover { background:var(--accent); color:var(--paper); }
+  .recent-btn:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
+  .recent-badge {
+    min-width:20px; height:20px; padding:0 6px; border-radius:10px; font-size:12px;
+    display:inline-flex; align-items:center; justify-content:center;
+    background:var(--brass); color:#fff;
   }
-  .weekly-all:hover { color:var(--brass); }
-  .weekly-all:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
-  .weekly .shiur-row { box-shadow:none; animation:none; }
+  .recent-date { font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:17px; color:#f6ecd3; margin:18px 0 10px; text-shadow:0 1px 6px rgba(20,14,8,0.5); }
 
   .no-content, .note {
     background:#fbf7ea; border:1px dashed var(--line); border-radius:6px;
@@ -221,6 +221,9 @@
     </div>
     <p class="meta" id="headerMeta">טוען…</p>
   </header>
+  <div class="recent-row" id="recentRow" hidden>
+    <button class="recent-btn" id="recentBtn"></button>
+  </div>
   <div class="search-row">
     <svg class="search-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
     <input type="text" class="search-input" id="searchInput" placeholder="פרשה או מועד, למשל: נח תשפה" autocomplete="off">
@@ -334,6 +337,8 @@
   let unmatched = [];
   let pdfPaths = new Set();   // נתיבי סיכומי PDF שקיימים (אותו נתיב כמו השמע, סיומת שונה)
   let pdfVersions = {};       // נתיב PDF -> גרסה (pdf-versions.json), נוסף לקישור נגד מטמון
+  let uploadDates = {};       // נתיב שמע -> תאריך העלאה (uploads.json) - רק מה שיוצג ב"חדש השבוע"
+  let byPath = {};            // נתיב שמע -> השיעור המפוענח
   let view = { type:'shelf' };
   let setupMode = false;
   const app = document.getElementById('app');
@@ -447,6 +452,7 @@
   // אותו פורמט כמו directLink, כך שגם כתובת שהועתקה משורת הכתובת עובדת.
   function viewFromUrl(){
     const params = new URLSearchParams(location.search);
+    if (params.has('new')) return { type:'recent' };
     const key = params.get('parasha');
     if (key && chumashOf(key)) return { type:'parasha', key, year: params.get('year') || null };
     const name = params.get('chumash');
@@ -456,6 +462,7 @@
 
   function urlOf(v){
     const params = new URLSearchParams();
+    if (v.type === 'recent') params.set('new', '1');
     if (v.type === 'chumash') params.set('chumash', v.name);
     if (v.type === 'parasha'){
       params.set('parasha', v.key);
@@ -484,6 +491,7 @@
     if (view.type === 'error') renderError();
     else if (view.type === 'chumash') renderChumash(view.name);
     else if (view.type === 'parasha') renderParasha(view.key);
+    else if (view.type === 'recent') renderRecent();
     else renderShelf();
 
     // אנימציית כניסה: הדף נכנס בעדינות, והכרטיסים בתוכו במפל קל
@@ -500,7 +508,7 @@
 
   function renderShelf(){
     headerMeta.innerHTML = setupMode ? 'בהקמה' : `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
-    let html = `<div id="weekly">${weeklyHtml()}</div><div class="shelf">`;
+    let html = '<div class="shelf">';
     for (const c of CHUMASHIM){
       let count = 0;
       for (const key of pageKeysOf(c)) count += (index[key] || []).length;
@@ -517,107 +525,53 @@
     });
   }
 
-  // ====== השבוע: פרשת השבוע והמועד הקרוב ======
-  // מחושב בדפדפן לפי הלוח העברי (ספריית hebcal, מנהג ארץ ישראל), בלי שום
-  // מידע מההעלאה. מועד מוצג משבוע לפניו ועד סופו; פרשה - של השבת הקרובה.
-  // מוצגים רק דפים שיש בהם שיעורים, עם השיעור החדש ביותר מוכן להשמעה.
-  // אם הספרייה לא נטענה (אין אינטרנט לרגע, חסימה) - הבלוק פשוט לא מופיע.
-  let weeklyKeys = [];
+  // ====== חדש השבוע ======
+  // לפי uploads.json, שסקריפט ההעלאה מעדכן בכל העלאה רגילה (עם מייל).
+  // העלאת השלמות ("העלה בלי מייל") לא נרשמת שם, ולכן לא מופיעה כאן.
+  // מוצג מה שעלה ב-7 הימים האחרונים; אם לא עלה כלום - ההעלאה האחרונה.
+  function parseDay(d){ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; }
 
-  // שמות הפרשות אצל hebcal -> השמות באתר (הכתיב העברי של hebcal שונה
-  // לפעמים, למשל "מצרע", "בחקתי" - לכן ממפים מהשם הלועזי הקבוע)
-  const HEBCAL_PARASHA = {
-    'Bereshit':'בראשית','Noach':'נח','Lech-Lecha':'לך לך','Vayera':'וירא','Chayei Sara':'חיי שרה',
-    'Toldot':'תולדות','Vayetzei':'ויצא','Vayishlach':'וישלח','Vayeshev':'וישב','Miketz':'מקץ',
-    'Vayigash':'ויגש','Vayechi':'ויחי','Shemot':'שמות','Vaera':'וארא','Bo':'בא','Beshalach':'בשלח',
-    'Yitro':'יתרו','Mishpatim':'משפטים','Terumah':'תרומה','Tetzaveh':'תצוה','Ki Tisa':'כי תשא',
-    'Vayakhel':'ויקהל','Pekudei':'פקודי','Vayikra':'ויקרא','Tzav':'צו','Shmini':'שמיני',
-    'Tazria':'תזריע','Metzora':'מצורע','Achrei Mot':'אחרי מות','Kedoshim':'קדושים','Emor':'אמור',
-    'Behar':'בהר','Bechukotai':'בחוקותי','Bamidbar':'במדבר','Nasso':'נשא',"Beha'alotcha":'בהעלותך',
-    "Sh'lach":'שלח','Korach':'קרח','Chukat':'חוקת','Balak':'בלק','Pinchas':'פינחס','Matot':'מטות',
-    'Masei':'מסעי','Devarim':'דברים','Vaetchanan':'ואתחנן','Eikev':'עקב',"Re'eh":'ראה',
-    'Shoftim':'שופטים','Ki Teitzei':'כי תצא','Ki Tavo':'כי תבוא','Nitzavim':'נצבים',
-    'Vayeilech':'וילך',"Ha'azinu":'האזינו','Vezot Haberakhah':'וזאת הברכה'
-  };
-  const HEBCAL_MOED = [
-    [/^(Erev )?Rosh Hashana( \d+| II)?$/, 'ראש השנה'], [/^(Erev )?Yom Kippur$/, 'יום כיפור'],
-    [/^(Erev )?Sukkot/, 'סוכות'], [/^(Shmini Atzeret|Simchat Torah)$/, 'שמחת תורה'],
-    [/^Chanukah/, 'חנוכה'], [/^Asara B'Tevet$/, 'עשרה בטבת'], [/^Tu BiShvat$/, 'טו בשבט'],
-    [/^Ta'anit Esther$/, 'תענית אסתר'], [/^(Erev |Shushan )?Purim$/, 'פורים'],
-    [/^(Erev )?Pesach( [IV]+)?( \(CH''M\))?$/, 'פסח'], [/^Lag BaOmer$/, 'לג בעומר'],
-    [/^(Erev )?Shavuot( I+)?$/, 'שבועות'], [/^Tzom Tammuz$/, 'שבעה עשר בתמוז'],
-    [/^(Erev )?Tish'a B'Av$/, 'תשעה באב']
-  ];
-
-  function computeWeekly(hc, today){
-    const day = 24 * 3600 * 1000;
-    const t0 = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    const events = hc.HebrewCalendar.calendar({
-      start: new Date(t0 - 30 * day), end: new Date(t0 + 8 * day),
-      sedrot: true, il: true, noModern: true, noRoshChodesh: true, noSpecialShabbat: true
-    });
-    const moedSpan = {};   // מועד -> [תאריך ראשון, תאריך אחרון] בטווח
-    let parasha = null;
-    for (const ev of events){
-      const t = ev.getDate().greg().getTime();
-      if (ev.parsha){   // אירוע פרשת שבוע: השבת הקרובה בלבד (היום עד עוד 7 ימים)
-        if (!parasha && t >= t0 && t <= t0 + 7 * day) parasha = ev.parsha;
-        continue;
-      }
-      const desc = ev.getDesc();
-      const hit = HEBCAL_MOED.find(m => m[0].test(desc));
-      if (!hit) continue;
-      const span = moedSpan[hit[1]] || (moedSpan[hit[1]] = [t, t]);
-      span[0] = Math.min(span[0], t); span[1] = Math.max(span[1], t);
+  function recentGroups(){
+    const groups = {};   // תאריך -> [שיעור,...]
+    for (const path in uploadDates){
+      const s = byPath[path], day = parseDay(uploadDates[path]);
+      if (s && day) (groups[uploadDates[path]] = groups[uploadDates[path]] || []).push(s);
     }
-    const keys = Object.keys(moedSpan)
-      .filter(k => moedSpan[k][0] - 7 * day <= t0 && t0 <= moedSpan[k][1])
-      .sort((a, b) => moedSpan[a][0] - moedSpan[b][0]);
-    if (parasha){
-      for (const p of parasha){
-        const name = HEBCAL_PARASHA[p];
-        const key = name && (pairKeyOf[name] || name);
-        if (key && !keys.includes(key)) keys.push(key);
-      }
-    }
-    return keys;
+    const dates = Object.keys(groups).sort().reverse();
+    if (!dates.length) return { dates: [], groups, thisWeek: false };
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekAgo = new Date(today.getTime() - 6 * 24 * 3600 * 1000);
+    const week = dates.filter(d => parseDay(d) >= weekAgo);
+    return week.length ? { dates: week, groups, thisWeek: true } : { dates: [dates[0]], groups, thisWeek: false };
   }
 
-  function weeklyHtml(){
-    const keys = weeklyKeys.filter(k => (index[k] || []).length);
-    if (!keys.length) return '';
-    let html = '<section class="weekly" aria-label="השבוע"><div class="weekly-label">השבוע</div>';
-    for (const key of keys){
-      const all = sortedShiurim(key);
-      const latest = all[0];
-      html += `<div class="weekly-item">
-        <div class="weekly-head">
-          <span class="weekly-title">${itemLabel(key, pairLabel[key] || key)}</span>
-          ${all.length > 1 ? `<button class="weekly-all" data-key="${key}">לכל ${all.length} השיעורים ←</button>` : ''}
-        </div>
-        ${shiurRowHtml(latest, key, false, false)}
-      </div>`;
-    }
-    return html + '</section>';
+  function updateRecentBtn(){
+    const row = document.getElementById('recentRow');
+    const r = recentGroups();
+    row.hidden = !r.dates.length;
+    if (!r.dates.length) return;
+    const count = r.dates.reduce((n, d) => n + r.groups[d].length, 0);
+    document.getElementById('recentBtn').innerHTML = r.thisWeek
+      ? `חדש השבוע <span class="recent-badge">${count}</span>`
+      : 'העלאות אחרונות';
   }
+  document.getElementById('recentBtn').addEventListener('click', () => { view = { type:'recent' }; render(); scrollTop(); });
 
-  // "לכל השיעורים" - האצלת אירוע, כי הבלוק נבנה מחדש בכל רינדור של דף הבית
-  app.addEventListener('click', (e) => {
-    const btn = e.target.closest('.weekly-all');
-    if (btn){ view = { type:'parasha', key:btn.dataset.key }; render(); scrollTop(); }
-  });
-
-  // הספרייה נטענת אחרי שהאתר כבר מוצג, כדי לא לעכב את הטעינה הראשונה
-  function loadWeekly(){
-    const sc = document.createElement('script');
-    sc.src = 'https://cdn.jsdelivr.net/npm/@hebcal/core@5.10.1/dist/bundle.min.js';
-    sc.async = true;
-    sc.onload = () => {
-      try { weeklyKeys = computeWeekly(window.hebcal, new Date()); } catch (e) { return; }
-      const box = document.getElementById('weekly');
-      if (box) box.innerHTML = weeklyHtml();
-    };
-    document.head.appendChild(sc);
+  function renderRecent(){
+    headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
+    const r = recentGroups();
+    let html = `<div class="breadcrumb"><button class="home-link" id="homeBtn">${ICON_HOME} לדף הבית</button></div>
+      <h2 class="page-title">${r.thisWeek ? 'חדש השבוע' : 'העלאות אחרונות'}</h2>
+      <p class="page-sub">${r.thisWeek ? 'שיעורים שעלו לאתר בשבוע האחרון' : 'השבוע לא עלו שיעורים חדשים - זו ההעלאה האחרונה'}</p>`;
+    if (!r.dates.length) html += `<div class="no-content">אין עדיין מידע על העלאות</div>`;
+    for (const d of r.dates){
+      html += `<div class="recent-date">${parseDay(d).toLocaleDateString('he-IL', { weekday:'long', day:'numeric', month:'long' })}</div>`;
+      const list = r.groups[d].slice().sort((a, b) => a.path.localeCompare(b.path));
+      for (const s of list) html += shiurRowHtml(s, s.pageKey, false, false, true);
+    }
+    app.innerHTML = html;
+    bindHomeBtn();
   }
 
   function renderChumash(name){
@@ -653,8 +607,10 @@
 
   // כרטיס שיעור אחד (כותרת, מהירות, סיכום, שיתוף, נגן) - משותף לדף הפרשה
   // ולבלוק "השבוע" בדף הבית
-  function shiurRowHtml(s, key, hl, isTarget){
-    const title = `${s.name === key ? '' : s.name + ' · '}${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}${s.shabbatName ? ' · ' + s.shabbatName : ''}${s.isIyun ? ' · עיון' : ''}`;
+  // withName: להציג גם את שם הפרשה/המועד (בדף "חדש השבוע", שמערבב דפים)
+  function shiurRowHtml(s, key, hl, isTarget, withName){
+    const namePart = withName ? itemLabel(s.name, pairLabel[s.name] || s.name) + ' · ' : (s.name === key ? '' : s.name + ' · ');
+    const title = `${namePart}${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}${s.shabbatName ? ' · ' + s.shabbatName : ''}${s.isIyun ? ' · עיון' : ''}`;
     const type = /\.m4a$/i.test(s.filename) ? 'audio/mp4' : 'audio/mpeg';
     const url = R2_BASE.replace(/\/$/,'') + '/' + s.path.split('/').map(encodeURIComponent).join('/');
     const shareUrl = directLink(key, s.year);
@@ -820,14 +776,19 @@
     const versionsReq = fetch('pdf-versions.json?t=' + Date.now())
       .then(r => r.ok ? r.json() : {})
       .catch(() => ({}));
+    const uploadsReq = fetch('uploads.json?t=' + Date.now())
+      .then(r => r.ok ? r.json() : {})
+      .catch(() => ({}));
     return Promise.all([fetch('list.json?t=' + Date.now())
       .then(r => {
         if (r.status === 404) return [];   // הרשימה טרם נוצרה - מצב הקמה
         if (!r.ok) throw new Error('http ' + r.status);
         return r.json();
-      }), versionsReq])
-      .then(([files, versions]) => {
+      }), versionsReq, uploadsReq])
+      .then(([files, versions, uploads]) => {
         pdfVersions = versions || {};
+        uploadDates = uploads || {};
+        byPath = {};
         if (!files.length) setupMode = true;
         index = {}; unmatched = []; pdfPaths = new Set();
         for (const path of files){
@@ -835,12 +796,13 @@
           // כדי לבדוק בהמשך אם יש סיכום זמין לכל שיעור (אותו נתיב, סיומת שונה)
           if (/\.pdf$/i.test(path)){ pdfPaths.add(path); continue; }
           const s = parseFilename(path);
-          if (s){ (index[s.pageKey] = index[s.pageKey] || []).push(s); }
+          if (s){ (index[s.pageKey] = index[s.pageKey] || []).push(s); byPath[path] = s; }
           else unmatched.push(path);
         }
         // בטעינה הראשונה (או אחרי שגיאה) התצוגה נקבעת לפי הכתובת - כך עובדים
         // קישור ישיר לפרשה (?parasha=...&year=...) ורענון הדף בכל עומק ניווט
-        view = (view.type === 'chumash' || view.type === 'parasha') ? view : viewFromUrl();
+        updateRecentBtn();
+        view = (view.type === 'chumash' || view.type === 'parasha' || view.type === 'recent') ? view : viewFromUrl();
         render();
         return true;
       })
@@ -856,7 +818,7 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
   }
 
-  load().then(loadWeekly);
+  load();
 })();
 </script>
 <script>
