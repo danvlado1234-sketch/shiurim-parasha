@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>שיעורי פרשת שבוע ומועדים · מאת הרה"ג רבי יצחק ולדומירסקי שליט"א</title>
 <meta name="description" content="שיעורי פרשת השבוע ומועדי ישראל מפי הרה&quot;ג רבי יצחק ולדומירסקי שליט&quot;א — האזנה חינם לפי חומש, פרשה ומועד, מכל השנים.">
 <!-- תצוגה מקדימה כשמשתפים קישור (וואטסאפ, טלגרם, פייסבוק) - הכתובות חייבות להיות מלאות -->
@@ -43,7 +43,8 @@
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   [hidden] { display:none !important; }
-  html { background:var(--paper); }
+  /* בלי הגדלה (צביטה / הקשה כפולה) - התנהגות של אפליקציה ולא של דף אינטרנט */
+  html { background:var(--paper); touch-action:pan-x pan-y; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
   body {
     font-family:'Heebo',sans-serif; background:var(--paper); color:var(--ink);
     min-height:100vh; -webkit-tap-highlight-color:transparent;
@@ -1456,6 +1457,10 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
   }
+
+  // ספארי באייפון מתעלם מ-user-scalable=no, אז חוסמים את מחוות הצביטה ישירות
+  ['gesturestart', 'gesturechange'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive:false }));
+  // (הגדלה בהקשה כפולה נחסמת ב-touch-action של html, בלי לפגוע בלחיצות מהירות)
 
   load();
 })();
