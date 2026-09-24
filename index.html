@@ -32,13 +32,16 @@
     font-family:'Heebo',sans-serif; background:var(--paper); color:var(--ink);
     min-height:100vh;
   }
-  /* תמונת הרקע בשכבה קבועה נפרדת, בגובה המסך המלא (lvh - כולל המקום של
-     שורת הכתובת). בטלפון שורת הכתובת נעלמת/חוזרת בגלילה ומשנה את גובה
-     המסך; עם background-attachment:fixed הדפדפן חישב מחדש את גודל התמונה
-     בכל שינוי כזה, והיא קפצה ונמתחה לרגע. כך השכבה לא משנה גודל. */
+  /* תמונת הרקע בשכבה קבועה נפרדת. בטלפון שורת הכתובת נעלמת/חוזרת בגלילה
+     וגובה המסך משתנה; אם גובה השכבה תלוי בזה, הדפדפן מחשב מחדש את גודל
+     התמונה בכל שינוי והיא קופצת ונמתחת לרגע. לכן הגובה נקבע פעם אחת
+     (--bg-h, מהסקריפט בתחילת body) לפי הצלע הארוכה של המסך הפיזי - מספר
+     שלא משתנה בגלילה, בפתיחת הנגן או בסיבוב. translateZ מעביר את השכבה
+     לשכבה גרפית משלה, כדי שלא תצויר מחדש בכל גלילה. */
   body::before {
     content:''; position:fixed; top:0; left:0; right:0; z-index:-1;
-    height:100vh; height:100lvh;
+    height:100vh; height:100lvh; height:var(--bg-h, 100lvh);
+    transform:translateZ(0); will-change:transform; backface-visibility:hidden;
     background-image:
       linear-gradient(0deg, rgba(31,74,51,.05) 1px, transparent 1px),
       linear-gradient(180deg, rgba(18,13,9,0.55) 0%, rgba(24,17,12,0.4) 45%, rgba(245,239,223,0.95) 100%),
@@ -267,6 +270,13 @@
 </style>
 </head>
 <body>
+<script>
+  // גובה קבוע לשכבת הרקע (ראו body::before) - לפני שהדף מצויר
+  (function(){
+    var h = Math.max(screen.width || 0, screen.height || 0, window.innerHeight || 0);
+    if (h) document.documentElement.style.setProperty('--bg-h', h + 'px');
+  })();
+</script>
 <div class="wrap">
   <header class="hero">
     <h1 id="siteTitle">שיעורי פרשת שבוע ומועדים</h1>
