@@ -150,6 +150,12 @@
   }
   .play-btn:hover { background:var(--accent-soft); transform:scale(1.06); }
   .play-btn:focus-visible { outline:3px solid var(--brass); outline-offset:2px; }
+  .save-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; color:var(--muted); padding:4px; border-radius:50%; }
+  .save-btn:hover { color:var(--brass); }
+  .save-btn.on { color:var(--brass); }
+  .save-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
+  .list-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:18px 0 10px; }
+  .list-head .recent-date { margin:0; }
   .heard-btn { all:unset; cursor:pointer; display:inline-flex; align-items:center; color:var(--line); padding:4px; border-radius:50%; }
   .heard-btn:hover { color:var(--muted); }
   .heard-btn.on { color:#2e7d4f; }
@@ -226,7 +232,7 @@
   .shiur-row.hl { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
 
   /* כפתור "חדש השבוע" - במקום שבו היה "בדוק שיעורים חדשים" */
-  .recent-row { text-align:left; margin-bottom:18px; }
+  .recent-row { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
   .recent-btn {
     display:inline-flex; align-items:center; gap:8px; cursor:pointer;
     font-family:'Heebo',sans-serif; font-size:14px; font-weight:600; color:var(--accent);
@@ -265,6 +271,7 @@
   </header>
   <div class="recent-row" id="recentRow" hidden>
     <button class="recent-btn" id="recentBtn"></button>
+    <button class="recent-btn" id="listBtn"></button>
   </div>
   <div class="search-row">
     <svg class="search-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -473,6 +480,8 @@
     if (btn) copyLink(btn.dataset.link);
     const play = e.target.closest('.play-btn');
     if (play) playShiur(play.closest('.shiur-row').dataset.path);
+    const save = e.target.closest('.save-btn');
+    if (save) toggleSaved(save.closest('.shiur-row').dataset.path);
     const heard = e.target.closest('.heard-btn');
     if (heard) toggleHeard(heard.closest('.shiur-row').dataset.path);
   });
@@ -495,8 +504,35 @@
   function saveSoon(){ if (!saveTimer) saveTimer = setTimeout(saveProgress, 4000); }
   function getProg(path){ return progress[path] || null; }
   function setProg(path, patch){
-    progress[path] = Object.assign({}, progress[path] || {}, patch, { at: Date.now() });
+    const prev = progress[path] || {};
+    const next = Object.assign({}, prev, patch, { at: Date.now() });
+    // שיעור שנשמע יוצא מהרשימה לבד ועובר ל"נשמעו לאחרונה"
+    if (next.done && !prev.done){ next.doneAt = Date.now(); next.saved = false; }
+    progress[path] = next;
     saveSoon();
+  }
+
+  // ====== הרשימה שלי ======
+  function listOf(pred, sortKey, desc){
+    return Object.keys(progress)
+      .filter(path => byPath[path] && pred(progress[path]))
+      .sort((a, b) => ((progress[a][sortKey] || 0) - (progress[b][sortKey] || 0)) * (desc ? -1 : 1))
+      .map(path => byPath[path]);
+  }
+  // שמורים להמשך - בסדר שבו נשמרו (זה סדר הניגון)
+  function savedList(){ return listOf(p => p.saved && !p.done, 'savedAt', false); }
+  // התחילו ולא סיימו (ולא שמורים - אלה מופיעים ברשימה עצמה)
+  function continueList(){ return listOf(p => !p.saved && !p.done && p.t > 5, 'at', true).slice(0, 10); }
+  function heardList(){ return listOf(p => p.done, 'doneAt', true).slice(0, 10); }
+
+  function toggleSaved(path){
+    const p = getProg(path) || {};
+    // שמירה של שיעור שכבר נשמע = רוצים לשמוע שוב, אז מתחילים מההתחלה
+    setProg(path, p.saved ? { saved: false } : Object.assign({ saved: true, savedAt: Date.now() }, p.done ? { done: false, t: 0 } : {}));
+    saveProgress();
+    refreshCards(path);
+    updateRecentBtn();
+    showToast(p.saved ? 'הוסר מהרשימה שלי' : 'נוסף לרשימה שלי');
   }
   const DONE_RATIO = 0.9;   // מ-90% השיעור נחשב "נשמע"
 
@@ -519,7 +555,7 @@
     else if (t > 5 && d) meta = `נשמעו ${mins(t)} מתוך ${mins(d)} דק'`;
     else if (d) meta = `${mins(d)} דק'`;
     const pct = p.done ? 100 : (d ? Math.min(100, t / d * 100) : 0);
-    return { meta, pct, done: !!p.done, isCur, playing };
+    return { meta, pct, done: !!p.done, saved: !!p.saved && !p.done, isCur, playing };
   }
 
   function refreshCards(path){
@@ -530,6 +566,10 @@
       row.querySelector('.shiur-bar i').style.width = st.pct + '%';
       row.classList.toggle('is-done', st.done);
       row.classList.toggle('playing', st.isCur);
+      const sb = row.querySelector('.save-btn');
+      sb.classList.toggle('on', st.saved);
+      sb.innerHTML = st.saved ? ICON_BM_ON : ICON_BM;
+      sb.title = st.saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי';
       const hb = row.querySelector('.heard-btn');
       hb.classList.toggle('on', st.done);
       hb.title = st.done ? 'בטל סימון "נשמע"' : 'סמן כנשמע';
@@ -554,6 +594,8 @@
   const audio = document.getElementById('audio');
   const playerEl = document.getElementById('player');
   const seekEl = document.getElementById('playerSeek');
+  const ICON_BM = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
+  const ICON_BM_ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
   const ICON_PLAY = '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>';
   const ICON_PAUSE = '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>';
   let current = null;   // { path, s, title }
@@ -586,7 +628,8 @@
     const p = getProg(path) || {};
     // ממשיכים מאיפה שעצרו - אלא אם נשמע כבר, או שנשארו רק שניות בודדות
     const start = (!p.done && p.t > 5 && !(p.d && p.d - p.t < 10)) ? Math.floor(p.t) : 0;
-    current = { path, s, title: shiurTitle(s, s.pageKey, true) };
+    // שיעור מהרשימה - בסיומו ממשיכים לבא ברשימה, כמו רשימת השמעה
+    current = { path, s, title: shiurTitle(s, s.pageKey, true), fromList: !!p.saved && !p.done };
     audio.src = shiurUrl(s) + (start ? '#t=' + start : '');
     applySpeed();
     document.getElementById('playerTitle').textContent = current.title;
@@ -639,7 +682,14 @@
   audio.addEventListener('ended', () => {
     if (current){ setProg(current.path, { done: true, t: audio.duration || 0 }); saveProgress(); updateRecentBtn(); }
     onPlayState();
+    if (current && current.fromList) playNextInList();
   });
+  function playNextInList(){
+    const next = savedList().find(s => !current || s.path !== current.path);
+    if (!next){ showToast('סיימת את הרשימה'); return; }
+    showToast('ממשיך לשיעור הבא ברשימה');
+    playShiur(next.path);
+  }
   audio.addEventListener('error', () => { if (current) showToast('לא הצלחנו לטעון את השיעור — נסו שוב'); });
 
   seekEl.addEventListener('input', () => {
@@ -687,6 +737,7 @@
       ms.setActionHandler('seekbackward', () => skip(-15));
       ms.setActionHandler('seekforward', () => skip(15));
       ms.setActionHandler('seekto', (e) => { if (e.seekTime != null) audio.currentTime = e.seekTime; });
+      ms.setActionHandler('nexttrack', current.fromList ? () => playNextInList() : null);
     } catch (e) {}
   }
 
@@ -709,6 +760,7 @@
   function viewFromUrl(){
     const params = new URLSearchParams(location.search);
     if (params.has('new')) return { type:'recent' };
+    if (params.has('list')) return { type:'list' };
     const key = params.get('parasha');
     if (key && chumashOf(key)) return { type:'parasha', key, year: params.get('year') || null };
     const name = params.get('chumash');
@@ -719,6 +771,7 @@
   function urlOf(v){
     const params = new URLSearchParams();
     if (v.type === 'recent') params.set('new', '1');
+    if (v.type === 'list') params.set('list', '1');
     if (v.type === 'chumash') params.set('chumash', v.name);
     if (v.type === 'parasha'){
       params.set('parasha', v.key);
@@ -748,6 +801,7 @@
     else if (view.type === 'chumash') renderChumash(view.name);
     else if (view.type === 'parasha') renderParasha(view.key);
     else if (view.type === 'recent') renderRecent();
+    else if (view.type === 'list') renderList();
     else renderShelf();
 
     // אנימציית כניסה: הדף נכנס בעדינות, והכרטיסים בתוכו במפל קל
@@ -802,10 +856,17 @@
     return week.length ? { dates: week, groups, thisWeek: true } : { dates: [dates[0]], groups, thisWeek: false };
   }
 
+  // שני הכפתורים העליונים: "חדש השבוע" ו"הרשימה שלי" (כל אחד רק כשיש בו תוכן)
   function updateRecentBtn(){
     const row = document.getElementById('recentRow');
+    const listBtn = document.getElementById('listBtn');
+    const saved = savedList().length;
+    const hasList = saved || continueList().length || heardList().length;
+    listBtn.hidden = !hasList;
+    listBtn.innerHTML = `הרשימה שלי${saved ? ` <span class="recent-badge">${saved}</span>` : ''}`;
     const r = recentGroups();
-    row.hidden = !r.dates.length;
+    document.getElementById('recentBtn').hidden = !r.dates.length;
+    row.hidden = !r.dates.length && !hasList;
     if (!r.dates.length) return;
     // המונה סופר רק שיעורים שעוד לא נשמעו במכשיר הזה
     const count = r.dates.reduce((n, d) => n + r.groups[d].filter(s => !(getProg(s.path) || {}).done).length, 0);
@@ -814,6 +875,35 @@
       : 'העלאות אחרונות';
   }
   document.getElementById('recentBtn').addEventListener('click', () => { view = { type:'recent' }; render(); scrollTop(); });
+  document.getElementById('listBtn').addEventListener('click', () => { view = { type:'list' }; render(); scrollTop(); });
+
+  function renderList(){
+    headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
+    const saved = savedList(), cont = continueList(), heard = heardList();
+    let html = `<div class="breadcrumb"><button class="home-link" id="homeBtn">${ICON_HOME} לדף הבית</button></div>
+      <h2 class="page-title">הרשימה שלי</h2>
+      <p class="page-sub">נשמר במכשיר הזה בלבד</p>`;
+    if (!saved.length && !cont.length && !heard.length){
+      html += `<div class="no-content">הרשימה ריקה.<br>לחצו על סימן השמירה ${ICON_BM} ליד שיעור כדי להוסיף אותו לכאן.</div>`;
+    }
+    if (cont.length){
+      html += `<div class="recent-date">המשך האזנה</div>`;
+      for (const s of cont) html += shiurRowHtml(s, s.pageKey, false, false, true);
+    }
+    if (saved.length){
+      html += `<div class="list-head"><span class="recent-date">שמורים להמשך</span>
+        <button class="recent-btn" id="playListBtn">${ICON_PLAY} נגן את הרשימה</button></div>`;
+      for (const s of saved) html += shiurRowHtml(s, s.pageKey, false, false, true);
+    }
+    if (heard.length){
+      html += `<div class="recent-date">נשמעו לאחרונה</div>`;
+      for (const s of heard) html += shiurRowHtml(s, s.pageKey, false, false, true);
+    }
+    app.innerHTML = html;
+    bindHomeBtn();
+    const pl = document.getElementById('playListBtn');
+    if (pl) pl.addEventListener('click', () => playShiur(savedList()[0].path));
+  }
 
   function renderRecent(){
     headerMeta.innerHTML = `<strong>${totalCount()}</strong> שיעורים מוקלטים בארכיון`;
@@ -892,6 +982,7 @@
             ${hasSummary ? `<a class="text-link" href="${pdfUrl}" target="_blank" rel="noopener" title="הורד סיכום השיעור">${ICON_DOWNLOAD} סיכום</a>` : ''}
             <a class="share-btn" href="${audioUrl}" download="${escAttr(s.filename)}" target="_blank" rel="noopener" title="הורד את השיעור" aria-label="הורד את השיעור">${ICON_AUDIO_DL}</a>
             <button class="share-btn" data-link="${escAttr(shareUrl)}" title="העתק קישור לשיעור זה" aria-label="העתק קישור לשיעור זה">${ICON_LINK}</button>
+            <button class="save-btn${st.saved ? ' on' : ''}" title="${st.saved ? 'הסר מהרשימה שלי' : 'שמור לרשימה שלי'}" aria-label="שמירה לרשימה שלי">${st.saved ? ICON_BM_ON : ICON_BM}</button>
             <button class="heard-btn${st.done ? ' on' : ''}" title="${st.done ? 'בטל סימון &quot;נשמע&quot;' : 'סמן כנשמע'}" aria-label="סימון נשמע"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="m7.5 12.5 3 3 6-6.5"/></svg></button>
           </span>
         </div>
@@ -1070,7 +1161,7 @@
         // בטעינה הראשונה (או אחרי שגיאה) התצוגה נקבעת לפי הכתובת - כך עובדים
         // קישור ישיר לפרשה (?parasha=...&year=...) ורענון הדף בכל עומק ניווט
         updateRecentBtn();
-        view = (view.type === 'chumash' || view.type === 'parasha' || view.type === 'recent') ? view : viewFromUrl();
+        view = viewFromUrl();
         render();
         return true;
       })
