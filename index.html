@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>שיעורי פרשת שבוע ומועדים · מאת הרה"ג רבי יצחק ולדומירסקי שליט"א</title>
 <meta name="description" content="שיעורי פרשת השבוע ומועדי ישראל מפי הרה&quot;ג רבי יצחק ולדומירסקי שליט&quot;א — האזנה חינם לפי חומש, פרשה ומועד, מכל השנים.">
+<!-- תצוגה מקדימה כשמשתפים קישור (וואטסאפ, טלגרם, פייסבוק) - הכתובות חייבות להיות מלאות -->
+<meta property="og:type" content="website">
+<meta property="og:locale" content="he_IL">
+<meta property="og:site_name" content="שיעורי פרשת שבוע ומועדים">
+<meta property="og:title" content="שיעורי פרשת שבוע ומועדים · הרה&quot;ג רבי יצחק ולדומירסקי שליט&quot;א">
+<meta property="og:description" content="האזנה חינם לשיעורי פרשת השבוע ומועדי ישראל, לפי חומש, פרשה ומועד, מכל השנים.">
+<meta property="og:url" content="https://danvlado1234-sketch.github.io/shiurim-parasha/">
+<meta property="og:image" content="https://danvlado1234-sketch.github.io/shiurim-parasha/bg-rabbi.jpg">
+<meta property="og:image:width" content="2000">
+<meta property="og:image:height" content="1500">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;600;700&display=swap" rel="stylesheet">
@@ -122,6 +133,15 @@
     transition:background .15s ease, color .15s ease;
   }
   .shiur-actions .text-link:hover { background:var(--accent); color:var(--paper); }
+  .speed-btn {
+    font-family:'Heebo',sans-serif; font-size:12.5px; font-weight:600; cursor:pointer;
+    min-width:44px; padding:3px 8px; border-radius:20px; direction:ltr;
+    color:var(--muted); background:none; border:1px solid var(--line);
+    transition:color .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .speed-btn:hover { color:var(--accent); border-color:var(--accent); }
+  .speed-btn.fast { color:var(--paper); background:var(--accent); border-color:var(--accent); }
+  .speed-btn:focus-visible { outline:2px solid var(--brass); outline-offset:1px; }
   audio { width:100%; }
 
   .refresh-row { text-align:left; margin-bottom:18px; }
@@ -388,7 +408,36 @@
   app.addEventListener('click', (e) => {
     const btn = e.target.closest('.share-btn');
     if (btn) copyLink(btn.dataset.link);
+    if (e.target.closest('.speed-btn')) cycleSpeed();
   });
+
+  // ====== מהירות השמעה ======
+  // הגדרה אחת לכל השיעורים, נשמרת בדפדפן בין ביקורים. חשוב במיוחד באייפון,
+  // שבנגן המובנה שלו אין בכלל בחירת מהירות.
+  const SPEEDS = [1, 1.25, 1.5, 1.75, 2];
+  let speed = 1;
+  try { const saved = parseFloat(localStorage.getItem('playbackSpeed')); if (SPEEDS.includes(saved)) speed = saved; } catch (e) {}
+
+  function speedLabel(){ return speed + '×'; }
+  function speedBtnHtml(){
+    return `<button class="speed-btn${speed !== 1 ? ' fast' : ''}" title="מהירות השמעה" aria-label="מהירות השמעה ${speed}">${speedLabel()}</button>`;
+  }
+  function applySpeed(a){ a.defaultPlaybackRate = speed; a.playbackRate = speed; }
+
+  function cycleSpeed(){
+    speed = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    try { localStorage.setItem('playbackSpeed', String(speed)); } catch (e) {}
+    document.querySelectorAll('audio').forEach(applySpeed);
+    document.querySelectorAll('.speed-btn').forEach(b => {
+      b.textContent = speedLabel();
+      b.classList.toggle('fast', speed !== 1);
+      b.setAttribute('aria-label', 'מהירות השמעה ' + speed);
+    });
+    showToast('מהירות השמעה: \u2066' + speedLabel() + '\u2069');  // בידוד LTR, שה-× לא יקפוץ לצד השני
+  }
+
+  // הדפדפן מאפס את המהירות כשהקובץ נטען, אז מחילים אותה שוב בכל הפעלה
+  document.addEventListener('play', (e) => { if (e.target.tagName === 'AUDIO') applySpeed(e.target); }, true);
 
   // כפתור "לדף הבית" - מחזיר לארון החומשים מכל עומק ניווט בקליק אחד
   function bindHomeBtn(){
@@ -398,7 +447,46 @@
   }
 
   // ====== תצוגות ======
+  // ====== כתובת הדף משקפת את התצוגה ======
+  // כל מעבר בין דפים נרשם בהיסטוריית הדפדפן, כדי שכפתור "חזור" של הטלפון
+  // יחזור דף אחד אחורה (פרשה -> חומש -> דף הבית) ולא יצא מהאתר לגמרי.
+  // אותו פורמט כמו directLink, כך שגם כתובת שהועתקה משורת הכתובת עובדת.
+  function viewFromUrl(){
+    const params = new URLSearchParams(location.search);
+    const key = params.get('parasha');
+    if (key && chumashOf(key)) return { type:'parasha', key, year: params.get('year') || null };
+    const name = params.get('chumash');
+    if (name && CHUMASHIM.some(c => c.name === name)) return { type:'chumash', name };
+    return { type:'shelf' };
+  }
+
+  function urlOf(v){
+    const params = new URLSearchParams();
+    if (v.type === 'chumash') params.set('chumash', v.name);
+    if (v.type === 'parasha'){
+      params.set('parasha', v.key);
+      if (v.year) params.set('year', v.year);
+    }
+    const q = params.toString();
+    return location.pathname + (q ? '?' + q : '');
+  }
+
+  function sameView(a, b){
+    return a.type === b.type && (a.name || null) === (b.name || null)
+      && (a.key || null) === (b.key || null) && (a.year || null) === (b.year || null);
+  }
+
+  window.addEventListener('popstate', () => {
+    if (view.type === 'error') return;
+    view = viewFromUrl();
+    render();
+    window.scrollTo(0, 0);
+  });
+
   function render(){
+    if (view.type !== 'error' && !sameView(view, viewFromUrl())){
+      history.pushState(null, '', urlOf(view));
+    }
     if (view.type === 'error') renderError();
     else if (view.type === 'chumash') renderChumash(view.name);
     else if (view.type === 'parasha') renderParasha(view.key);
@@ -490,6 +578,7 @@
         <div class="shiur-head">
           <span class="shiur-title">${title}</span>
           <span class="shiur-actions">
+            ${speedBtnHtml()}
             ${hasSummary ? `<a class="text-link" href="${pdfUrl}" target="_blank" rel="noopener" title="הורד סיכום השיעור">${ICON_DOWNLOAD} סיכום</a>` : ''}
             <button class="share-btn" data-link="${escAttr(shareUrl)}" title="העתק קישור לשיעור זה" aria-label="העתק קישור לשיעור זה">${ICON_LINK}</button>
           </span>
@@ -645,7 +734,9 @@
           if (s){ (index[s.pageKey] = index[s.pageKey] || []).push(s); }
           else unmatched.push(path);
         }
-        view = (view.type === 'chumash' || view.type === 'parasha') ? view : { type:'shelf' };
+        // בטעינה הראשונה (או אחרי שגיאה) התצוגה נקבעת לפי הכתובת - כך עובדים
+        // קישור ישיר לפרשה (?parasha=...&year=...) ורענון הדף בכל עומק ניווט
+        view = (view.type === 'chumash' || view.type === 'parasha') ? view : viewFromUrl();
         render();
         return true;
       })
@@ -677,14 +768,7 @@
     });
   });
 
-  load().then(() => {
-    // קישור ישיר לפרשה מסוימת: ?parasha=<key>&year=<שנה>
-    const params = new URLSearchParams(location.search);
-    const key = params.get('parasha');
-    if (key && index[key]){
-      openSuggestion(key, params.get('year') || null);
-    }
-  });
+  load();
 })();
 </script>
 <script>
