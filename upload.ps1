@@ -111,10 +111,17 @@ $mp4Files = Get-ChildItem -Path $root -Recurse -File -Filter '*.mp4' |
 # גם סיכומי PDF: השם שלהם חייב להיות זהה לשם השמע, אחרת כפתור "סיכום" לא יופיע
 $spacedFiles = Get-ChildItem -Path $root -Recurse -File |
     Where-Object { $_.Extension -match '^\.(m4a|mp3|pdf)$' -and $_.Name -match ' ' -and $_.FullName -notmatch '\\\.git\\' }
-# גרשיים/גרש בשם (למשל השנה הוקלדה תשפ"ז במקום תשפז) - האתר לא מזהה אותם
+# גרשיים/גרש בשם (למשל השנה הוקלדה תשפ"ז במקום תשפז) - האתר לא מזהה אותם.
+# חוץ מנושא שיעור העיון (מה שאחרי "_עיון_"), שם הם חלק מהכותרת: לקיחת_ד'_מינים
 $quoteChars = '["''\u05F3\u05F4]'
+function Get-CleanBase([string]$b) {
+    $b = $b -replace ' ', '_'
+    $i = $b.IndexOf('_עיון_')
+    if ($i -ge 0) { return ($b.Substring(0, $i) -replace $quoteChars, '') + $b.Substring($i) }
+    return $b -replace $quoteChars, ''
+}
 $quotedFiles = Get-ChildItem -Path $root -Recurse -File |
-    Where-Object { $_.Extension -match '^\.(m4a|mp3|pdf)$' -and $_.BaseName -match $quoteChars -and $_.FullName -notmatch '\\\.git\\' }
+    Where-Object { $_.Extension -match '^\.(m4a|mp3|pdf)$' -and (Get-CleanBase $_.BaseName) -cne ($_.BaseName -replace ' ', '_') -and $_.FullName -notmatch '\\\.git\\' }
 
 if ($mp4Files -or $spacedFiles -or $quotedFiles) {
     Write-Host "[0/4] מתקן שמות קבצים (וואטסאפ / רווחים / גרשיים)..." -ForegroundColor Yellow
@@ -139,9 +146,9 @@ if ($mp4Files -or $spacedFiles -or $quotedFiles) {
     # m4a/mp3/pdf עם רווחים ו/או גרשיים בשם (קובץ שהגיע במייל או הוקלד ידנית) -
     # מחליפים רווחים בקו תחתון ומוחקים גרשיים. אחרי תיקון ה-mp4, כי שמו כבר השתנה.
     $toClean = @(Get-ChildItem -Path $root -Recurse -File |
-        Where-Object { $_.Extension -match '^\.(m4a|mp3|pdf)$' -and ($_.Name -match ' ' -or $_.BaseName -match $quoteChars) -and $_.FullName -notmatch '\\\.git\\' })
+        Where-Object { $_.Extension -match '^\.(m4a|mp3|pdf)$' -and (Get-CleanBase $_.BaseName) -cne $_.BaseName -and $_.FullName -notmatch '\\\.git\\' })
     foreach ($f in $toClean) {
-        $newName = (($f.BaseName -replace ' ', '_') -replace $quoteChars, '') + $f.Extension
+        $newName = (Get-CleanBase $f.BaseName) + $f.Extension
         $newPath = Join-Path $f.DirectoryName $newName
         if (Test-Path $newPath) {
             Write-Host "      !! $($f.Name) - כבר קיים קובץ בשם $newName, לא הוחלף (בדקו ידנית)" -ForegroundColor Red
@@ -197,7 +204,12 @@ function Test-ShiurName([string]$fileName) {
     $tokens = @($base -split '_' | Where-Object { $_ })
     if ($tokens.Count -gt 0 -and ($tokens[0] -eq 'פרשת' -or $tokens[0] -eq 'מועד')) { $tokens = @($tokens | Select-Object -Skip 1) }
     $iyun = $false; $shabbat = ''
-    if ($tokens.Count -gt 0 -and $tokens[-1] -eq 'עיון') { $iyun = $true; $tokens = @($tokens | Select-Object -First ($tokens.Count - 1)) }
+    # "עיון" ואחריו (לא חובה) נושא השיעור: סוכות_תשפז_עיון_לקיחת_ד'_מינים
+    $iI = [array]::IndexOf($tokens, 'עיון')
+    if ($iI -ge 0) {
+        $iyun = if ($iI + 1 -lt $tokens.Count) { $tokens[($iI + 1)..($tokens.Count - 1)] -join ' ' } else { 'כן' }
+        $tokens = @($tokens | Select-Object -First $iI)
+    }
     if ($tokens.Count -ge 2 -and $tokens[-2] -eq 'שבת') { $shabbat = $tokens[-1]; $tokens = @($tokens | Select-Object -First ($tokens.Count - 2)) }
     $iL = [array]::IndexOf($tokens, 'שיעור'); $iP = [array]::IndexOf($tokens, 'חלק')
     $lesson = ''; $part = ''
@@ -388,9 +400,10 @@ function Get-ParashaKey([string]$relativePath) {
     $base = $filename -replace '\.(mp3|m4a)$', ''
     $tokens = @($base -split '_' | Where-Object { $_ })
     if ($tokens.Count -gt 0 -and ($tokens[0] -eq 'פרשת' -or $tokens[0] -eq 'מועד')) { $tokens = $tokens[1..($tokens.Count - 1)] }
-    # דגל "עיון" (עיוני/הלכתי, בלי ערך אחריו) - תמיד בסוף השם. חייב להיות
-    # מוסר לפני חיתוך שיעור/חלק, אחרת הוא נחשב בטעות לשנה. זהה ל-index.html.
-    if ($tokens.Count -gt 0 -and $tokens[$tokens.Count - 1] -eq 'עיון') { $tokens = $tokens[0..($tokens.Count - 2)] }
+    # "עיון" (עיוני/הלכתי) ואחריו אולי נושא השיעור - תמיד בסוף השם. מוסרים מ"עיון"
+    # והלאה לפני חיתוך שיעור/חלק, אחרת זה נחשב בטעות לשנה. זהה ל-index.html.
+    $iI = [array]::IndexOf($tokens, 'עיון')
+    if ($iI -ge 1) { $tokens = $tokens[0..($iI - 1)] }
     # תגית "שבת <מילה>" (הגדול/שובה/זכור/פרה/החודש/חזון/נחמו וכו') - שיעור
     # ששייך לתיקיית ולשם הקובץ של מועד אחר (למשל שבת הגדול -> פסח). זוג
     # טוקנים, תמיד לפני "עיון" אם קיים. זהה ל-index.html.

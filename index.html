@@ -469,16 +469,18 @@
   //               לשיעור ששייך תוכנית-אירועים למועד אחר (למשל שיעור על
   //               שבת הגדול משוייך לתיקיית ולשם הקובץ של פסח, לא מועד נפרד).
   //               תמיד לפני "עיון" אם שניהם קיימים.
-  //   "עיון"    = דגל בלבד (בלי ערך אחריו), תמיד בסוף השם. סימון תוכן
-  //               הלכתי/עיוני להבדיל מוורט (ברירת המחדל, בלי הדגל).
+  //   "עיון"    = תמיד בסוף השם. סימון תוכן הלכתי/עיוני להבדיל מוורט (ברירת
+  //               המחדל, בלי הדגל). אחריו אפשר לכתוב את נושא השיעור, והוא
+  //               הכותרת שלו: סוכות_תשפז_עיון_לקיחת_ד'_מינים
   // כולם אופציונליים ויכולים להופיע יחד.
   function parseFilename(path){
     const filename = path.split('/').pop();
     const base = filename.replace(/\.(mp3|m4a)$/i, '');
     let tokens = base.split('_').filter(Boolean);
     if (tokens[0] === 'פרשת' || tokens[0] === 'מועד') tokens = tokens.slice(1);
-    let isIyun = false;
-    if (tokens[tokens.length - 1] === 'עיון'){ isIyun = true; tokens = tokens.slice(0, -1); }
+    let isIyun = false, topic = null;
+    const iIyun = tokens.indexOf('עיון');
+    if (iIyun > -1){ isIyun = true; topic = tokens.slice(iIyun + 1).join(' ') || null; tokens = tokens.slice(0, iIyun); }
     let shabbatName = null;
     if (tokens.length >= 2 && tokens[tokens.length - 2] === 'שבת'){
       shabbatName = 'שבת ' + tokens[tokens.length - 1];
@@ -505,7 +507,7 @@
     if (!validNames[name] || !yearValue(year)) return null;
     // דף הבית של השיעור: הפרשה עצמה, או דף הזוג אם היא חלק מזוג
     const pageKey = pairLabel[name] ? name : (pairKeyOf[name] || name);
-    return { path, filename, name, year, part, lesson, pageKey, isIyun, shabbatName };
+    return { path, filename, name, year, part, lesson, pageKey, isIyun, topic, shabbatName };
   }
 
   // ====== מצב ======
@@ -846,9 +848,10 @@
   }
   function shiurUrl(s){ return R2_BASE.replace(/\/$/,'') + '/' + s.path.split('/').map(encodeURIComponent).join('/'); }
 
-  // תת-כותרת של שיעור בלי שם הפרשה: "תשפ"ו · שיעור א · עיון"
+  // תת-כותרת של שיעור בלי שם הפרשה: "תשפ"ו · שיעור א · עיון".
+  // לשיעור עיון עם נושא - הנושא בראש: "לקיחת ד' מינים · תשפ"ז · עיון"
   function shiurDetail(s){
-    return `${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}${s.shabbatName ? ' · ' + s.shabbatName : ''}${s.isIyun ? ' · עיון' : ''}`;
+    return `${s.topic ? s.topic + ' · ' : ''}${yearDisplay(s.year)}${s.lesson ? ' · שיעור ' + s.lesson : ''}${s.part ? ' · חלק ' + s.part : ''}${s.shabbatName ? ' · ' + s.shabbatName : ''}${s.isIyun ? ' · עיון' : ''}`;
   }
 
   function playShiur(path){
@@ -1507,6 +1510,17 @@
             .sort((a,b) => yearValue(b) - yearValue(a))
             .forEach(y => rows.push({ key, year: y, sub: ch + ' · ' + yearDisplay(y) }));
         } else rows.push({ key, sub: ch + ' · ' + nShiurim(index[key].length) });
+      }
+    }
+    // שיעורי עיון לפי הנושא ("ארבעת המינים", "ד מינים" -> לקיחת ד' מינים)
+    const q = (lastQuery || '').replace(/["'״׳\s]/g, '');
+    if (q.length >= 2){
+      const seen = new Set(rows.map(r => r.key + '|' + (r.year || '')));
+      for (const s of Object.values(byPath)){
+        if (!s.topic || !s.topic.replace(/["'״׳\s]/g, '').includes(q)) continue;
+        const id = s.pageKey + '|' + s.year + '|' + s.topic;
+        if (seen.has(id)) continue; seen.add(id);
+        rows.push({ key: s.pageKey, year: s.year, sub: `עיון: ${escAttr(s.topic)} · ${yearDisplay(s.year)}` });
       }
     }
     if (!rows.length){ box.innerHTML = `<div class="empty-box">לא נמצאה התאמה</div>`; return; }
