@@ -293,13 +293,14 @@ if ($nameProblems.Count -gt 0) {
 # קוראים עם קידוד UTF-8 מפורש (לא Get-Content רגיל) כי list.json נשמר בכוונה
 # בלי BOM (כדי שהאתר יקרא אותו תקין) - ובלי לציין קידוד מפורש, PowerShell
 # מפרש את זה לא נכון ומייצר עברית ג'יבריש. מפרקים גם ידנית עם regex במקום
-# ConvertFrom-Json, כי בבדיקות זה התנהג לא אמין על המחרוזת הזו.
+# ConvertFrom-Json, כי בבדיקות זה התנהג לא אמין על המחרוזת הזו. Unescape חובה:
+# ConvertTo-Json כותב גרש כ-\u0027, ובלי פענוח שיעור עם גרש בשם נחשב "חדש" בכל הרצה.
 $listJsonPath = Join-Path $root 'list.json'
 $oldFiles = @()
 if (Test-Path $listJsonPath) {
     try {
         $rawOld = [System.IO.File]::ReadAllText($listJsonPath, [System.Text.Encoding]::UTF8)
-        $oldFiles = @([regex]::Matches($rawOld, '"((?:[^"\\]|\\.)*)"') | ForEach-Object { $_.Groups[1].Value })
+        $oldFiles = @([regex]::Matches($rawOld, '"((?:[^"\\]|\\.)*)"') | ForEach-Object { [regex]::Unescape($_.Groups[1].Value) })
     } catch { $oldFiles = @() }
 }
 
@@ -358,7 +359,7 @@ if (Test-Path $uploadsPath) {
     try {
         $rawUploads = [System.IO.File]::ReadAllText($uploadsPath, [System.Text.Encoding]::UTF8)
         foreach ($um in [regex]::Matches($rawUploads, '"((?:[^"\\]|\\.)*)"\s*:\s*"(\d{4}-\d{2}-\d{2})"')) {
-            $uploads[$um.Groups[1].Value] = $um.Groups[2].Value
+            $uploads[[regex]::Unescape($um.Groups[1].Value)] = $um.Groups[2].Value
         }
     } catch { $uploads = [ordered]@{} }
 }
