@@ -1129,10 +1129,28 @@
     return { type:'shelf' };
   }
 
+  // מחסנית הדפים של האתר נשמרת ב-history.state של כל כניסה בהיסטוריה.
+  // מעבר לדף שכבר נמצא מאחורינו במחסנית (למשל "בית" אחרי בית -> חומש) חוזר
+  // אליו עם history.go במקום להוסיף כניסה חדשה - אחרת "חזור" בטלפון היה
+  // עובר שוב על כל המסלול הלוך-חזור (בית, חומש, בית, חומש...).
+  function navState(){
+    const s = history.state;
+    return (s && Array.isArray(s.nav)) ? s : { nav:[location.pathname + location.search], i:0 };
+  }
+  // מחזיר true אם חזרנו אחורה - אז popstate יצייר את הדף, לא render
+  function navigateTo(url){
+    const st = navState();
+    const j = st.i > 0 ? st.nav.lastIndexOf(url, st.i - 1) : -1;
+    if (j >= 0){ history.go(j - st.i); return true; }
+    const nav = st.nav.slice(0, st.i + 1).concat(url);
+    history.pushState({ nav, i: nav.length - 1 }, '', url);
+    return false;
+  }
+
   function render(){
     closeMenu();
     if (view.type !== 'error' && !sameView(view, viewFromUrl())){
-      history.pushState(null, '', urlOf(view));
+      if (navigateTo(urlOf(view))) return;
     }
     if (view.type === 'error') renderError();
     else if (view.type === 'chumash') renderChumash(view.name);
