@@ -187,16 +187,22 @@ function Get-YearValue([string]$y) {
 }
 # מרחק עריכה (כמה אותיות שונות) - להצעת "האם התכוונת ל..."
 function Get-EditDistance([string]$a, [string]$b) {
-    $d = New-Object 'int[,]' ($a.Length + 1), ($b.Length + 1)
-    for ($i = 0; $i -le $a.Length; $i++) { $d[$i, 0] = $i }
-    for ($j = 0; $j -le $b.Length; $j++) { $d[0, $j] = $j }
+    # טבלה חד-ממדית ($d[i * w + j]) - PowerShell 5 של Windows לא מצליח לפענח
+    # אינדקס דו-ממדי ($d[$i, $j]) בתוך קריאה ל-[Math]::Min
+    $w = $b.Length + 1
+    $d = New-Object 'int[]' (($a.Length + 1) * $w)
+    for ($i = 0; $i -le $a.Length; $i++) { $d[$i * $w] = $i }
+    for ($j = 0; $j -le $b.Length; $j++) { $d[$j] = $j }
     for ($i = 1; $i -le $a.Length; $i++) {
         for ($j = 1; $j -le $b.Length; $j++) {
             $cost = if ($a[$i - 1] -eq $b[$j - 1]) { 0 } else { 1 }
-            $d[$i, $j] = [Math]::Min([Math]::Min($d[($i - 1), $j] + 1, $d[$i, ($j - 1)] + 1), $d[($i - 1), ($j - 1)] + $cost)
+            $del = $d[($i - 1) * $w + $j] + 1
+            $ins = $d[$i * $w + $j - 1] + 1
+            $sub = $d[($i - 1) * $w + $j - 1] + $cost
+            $d[$i * $w + $j] = [Math]::Min([Math]::Min($del, $ins), $sub)
         }
     }
-    return $d[$a.Length, $b.Length]
+    return $d[$a.Length * $w + $b.Length]
 }
 # מפענח שם קובץ כמו האתר. מחזיר @{ ok; name; year; key; why }
 function Test-ShiurName([string]$fileName) {
