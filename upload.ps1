@@ -13,6 +13,22 @@ $root = $PSScriptRoot
 if (-not $root) { $root = (Get-Location).Path }
 Set-Location $root
 
+# התקנת הגדרת מייל שהונחה זמנית בתיקייה הראשית (מחוץ לריפו): אם אין עדיין
+# mail-config.json ב-AppData של המחשב הזה, מעבירים אותו לשם ומוחקים את העותק.
+# (קלוד רואה AppData אחר מזה של המשתמש, אז כך הוא מעביר הגדרה בלי הקלדה.)
+$mailStaged = Join-Path (Split-Path $root -Parent) 'mail-config.install.json'
+$mailTarget = Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'shiurim-mail\mail-config.json'
+if (Test-Path $mailStaged) {
+    try {
+        if (-not (Test-Path $mailTarget)) {
+            New-Item -ItemType Directory -Force (Split-Path $mailTarget) | Out-Null
+            Copy-Item $mailStaged $mailTarget
+            Write-Host "הגדרת המייל הותקנה ב-$mailTarget" -ForegroundColor Green
+        }
+        Remove-Item $mailStaged -Force
+    } catch { Write-Host "!! התקנת הגדרת המייל נכשלה: $($_.Exception.Message)" -ForegroundColor Red }
+}
+
 # תיקיות שאינן חומשים - לדלג עליהן!
 $skip = @('.github', '.git', 'shiurim-parasha')
 
