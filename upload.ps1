@@ -461,7 +461,8 @@ if ($newKeys.Count -eq 0) {
     Write-Host "      אין קובץ mailing-list.txt - מדלג." -ForegroundColor Yellow
     Write-Status "אין רשימת תפוצה - מדלג." -Kind error
 } else {
-    $recipients = @(Get-Content $mailingListPath | Where-Object { $_.Trim() -and -not $_.Trim().StartsWith('#') })
+    $recipients = @(Get-Content $mailingListPath | ForEach-Object { $_.Trim() } |
+        Where-Object { $_ -and -not $_.StartsWith('#') } | Sort-Object -Unique)
     if ($recipients.Count -eq 0) {
         Write-Host "      רשימת התפוצה ריקה - לא נשלח מייל." -ForegroundColor Green
         Write-Status "רשימת התפוצה ריקה - לא נשלח מייל." -Kind done
@@ -490,20 +491,42 @@ if ($newKeys.Count -eq 0) {
                 # הנמענים האמיתיים ב-Bcc בלבד - כדי שאף נמען לא יראה את כתובות האחרים.
                 # -Encoding חובה: בלי זה Send-MailMessage שולח את הכותרת/הגוף בקידוד
                 # שלא תומך בעברית, וכל הטקסט העברי מגיע אצל הנמען כסימני "?????".
-                $mailParams = @{
-                    From = $cfg.FromEmail; To = $cfg.FromEmail; Bcc = $recipients
-                    Subject = $subject; Body = $body; BodyAsHtml = $true
-                    Encoding = [System.Text.Encoding]::UTF8
-                    SmtpServer = "smtp.gmail.com"; Port = 587; UseSsl = $true; Credential = $cred
+                # שליחה במנות: Gmail מגביל את מספר הנמענים בהודעה אחת (~100 ב-SMTP)
+                # ואת סך הנמענים ביום (~500 בחשבון רגיל). לכן מחלקים את הרשימה
+                # למנות של $batchSize, ולא עוברים את $dailyCap בהרצה אחת - מעבר
+                # לזה Gmail חוסם את השליחה מהחשבון ל-24 שעות.
+                $batchSize = 90
+                $dailyCap = 450
+                $skipped = @()
+                if ($recipients.Count -gt $dailyCap) {
+                    $skipped = @($recipients[$dailyCap..($recipients.Count - 1)])
+                    $recipients = @($recipients[0..($dailyCap - 1)])
                 }
-                if ($canAttach) { $mailParams.Attachments = $attachPaths }
-                Send-MailMessage @mailParams
-                if ($canAttach) {
-                    Write-Host "      מייל נשלח ל-$($recipients.Count) נמענים (Bcc), עם השיעור מצורף." -ForegroundColor Green
-                    Write-Status "מייל נשלח ל-$($recipients.Count) נמענים, עם השיעור מצורף." -Kind done
-                } else {
-                    Write-Host "      מייל נשלח ל-$($recipients.Count) נמענים (Bcc), רק קישור - הקובץ ($([math]::Round($attachTotalBytes/1MB,1))MB) גדול מדי לצירוף." -ForegroundColor Green
-                    Write-Status "מייל נשלח ל-$($recipients.Count) נמענים, עם קישור בלבד." -Kind done
+                $sent = 0; $failedBatches = 0
+                for ($b = 0; $b -lt $recipients.Count; $b += $batchSize) {
+                    $batch = @($recipients[$b..([math]::Min($b + $batchSize, $recipients.Count) - 1)])
+                    $mailParams = @{
+                        From = $cfg.FromEmail; To = $cfg.FromEmail; Bcc = $batch
+                        Subject = $subject; Body = $body; BodyAsHtml = $true
+                        Encoding = [System.Text.Encoding]::UTF8
+                        SmtpServer = "smtp.gmail.com"; Port = 587; UseSsl = $true; Credential = $cred
+                    }
+                    if ($canAttach) { $mailParams.Attachments = $attachPaths }
+                    try {
+                        Send-MailMessage @mailParams -ErrorAction Stop
+                        $sent += $batch.Count
+                    } catch {
+                        $failedBatches++
+                        Write-Host "      !! מנה $([math]::Floor($b / $batchSize) + 1) ($($batch.Count) נמענים) נכשלה: $($_.Exception.Message)" -ForegroundColor Red
+                    }
+                    if ($b + $batchSize -lt $recipients.Count) { Start-Sleep -Seconds 3 }
+                }
+                $how = if ($canAttach) { "עם השיעור מצורף" } else { "רק קישור - הקובץ ($([math]::Round($attachTotalBytes/1MB,1))MB) גדול מדי לצירוף" }
+                Write-Host "      מייל נשלח ל-$sent נמענים (Bcc, במנות של עד $batchSize), $how." -ForegroundColor Green
+                Write-Status "מייל נשלח ל-$sent נמענים." -Kind $(if ($failedBatches) { 'error' } else { 'done' })
+                if ($skipped.Count) {
+                    Write-Host "      !! $($skipped.Count) נמענים לא קיבלו מייל - מעבר למגבלה היומית של Gmail ($dailyCap). הראשון שלא נשלח: $($skipped[0])" -ForegroundColor Red
+                    Write-Status "$($skipped.Count) נמענים מעבר למגבלה היומית של Gmail לא קיבלו מייל." -Kind error
                 }
             }
         } catch {
