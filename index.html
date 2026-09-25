@@ -471,7 +471,8 @@
   //               תמיד לפני "עיון" אם שניהם קיימים.
   //   "עיון"    = תמיד בסוף השם. סימון תוכן הלכתי/עיוני להבדיל מוורט (ברירת
   //               המחדל, בלי הדגל). אחריו אפשר לכתוב את נושא השיעור, והוא
-  //               הכותרת שלו: סוכות_תשפז_עיון_לקיחת_ד'_מינים
+  //               הכותרת שלו: סוכות_תשפז_עיון_לקיחת_ד'_מינים. מרכאות אסורות
+  //               בשם קובץ ב-Windows, לכן שני גרשים '' מוצגים כמרכאות: חוה''מ -> חוה"מ
   // כולם אופציונליים ויכולים להופיע יחד.
   function parseFilename(path){
     const filename = path.split('/').pop();
@@ -480,7 +481,7 @@
     if (tokens[0] === 'פרשת' || tokens[0] === 'מועד') tokens = tokens.slice(1);
     let isIyun = false, topic = null;
     const iIyun = tokens.indexOf('עיון');
-    if (iIyun > -1){ isIyun = true; topic = tokens.slice(iIyun + 1).join(' ') || null; tokens = tokens.slice(0, iIyun); }
+    if (iIyun > -1){ isIyun = true; topic = tokens.slice(iIyun + 1).join(' ').replace(/''/g, '"') || null; tokens = tokens.slice(0, iIyun); }
     let shabbatName = null;
     if (tokens.length >= 2 && tokens[tokens.length - 2] === 'שבת'){
       shabbatName = 'שבת ' + tokens[tokens.length - 1];
