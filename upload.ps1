@@ -255,7 +255,8 @@ function Test-ShiurName([string]$fileName) {
         $hint = if ($bestD -le 2) { " - האם התכוונת ל'$best'?" } else { '' }
         return @{ ok = $false; why = "שם הפרשה/המועד '$name' לא מזוהה$hint" }
     }
-    return @{ ok = $true; name = $name; year = $year; key = "$name|$year|$lesson|$part|$shabbat|$iyun" }
+    return @{ ok = $true; name = $name; year = $year; key = "$name|$year|$lesson|$part|$shabbat|$iyun"
+              lesson = $lesson; part = $part; shabbat = $shabbat; iyun = $iyun }
 }
 
 $nameProblems = New-Object System.Collections.Generic.List[string]
@@ -315,6 +316,26 @@ foreach ($m in $chumashim) {
 # אחרת היינו שולחים שוב מייל על שיעור ישן.
 $newAudioPaths = @($audioFiles | Where-Object { $oldFiles -notcontains $_ })
 
+# מייל נשלח רק כשכל השיעורים החדשים הם על נושא אחד (אותה פרשה/מועד ואותה
+# שנה) - למשל וורט + עיון על סוכות תשפז, או חלק א + חלק ב. העלאה שמערבבת
+# כמה נושאים (השלמת backlog, תיקונים) עולה בשקט, כמו -NoEmail - כדי שלא
+# ייצא מייל לא מבוקר (זה כבר קרה בפועל במהלך בדיקה).
+$newShiurim = @(foreach ($p in $newAudioPaths) {
+    $r = Test-ShiurName (Split-Path $p -Leaf)
+    if ($r.ok) { [pscustomobject]@{ Path = $p; Name = $r.name; Year = $r.year; Lesson = $r.lesson; Part = $r.part; Shabbat = $r.shabbat; Iyun = $r.iyun } }
+})
+$newTopics = @($newShiurim | ForEach-Object { "$($_.Name)|$($_.Year)" } | Sort-Object -Unique)
+$mailSkipReason = ''
+if ($NoEmail) { $mailSkipReason = 'הורץ בלי מייל' }
+elseif ($newAudioPaths.Count -eq 0) { $mailSkipReason = 'אין שיעור חדש' }
+elseif ($newShiurim.Count -ne $newAudioPaths.Count) { $mailSkipReason = 'יש שיעור חדש ששמו לא מזוהה' }
+elseif ($newTopics.Count -gt 1) { $mailSkipReason = "השיעורים החדשים מכמה נושאים ($($newTopics.Count))" }
+$sendMail = -not $mailSkipReason
+if (-not $sendMail -and -not $NoEmail -and $newAudioPaths.Count -gt 0) {
+    Write-Host "      שים לב: לא יישלח מייל - $mailSkipReason. השיעורים יעלו לאתר בשקט." -ForegroundColor Yellow
+    Write-Status "לא יישלח מייל: $mailSkipReason. השיעורים יעלו לאתר בלי מייל."
+}
+
 # ---- שלב 1: העלאה ל-R2 ----
 Write-Host "[1/4] מעלה שיעורים ל-R2..." -ForegroundColor Yellow
 Write-Status "[1/4] מעלה שיעורים לענן..."
@@ -351,7 +372,7 @@ $versionsJson = if ($pdfVersions.Count) { $pdfVersions | ConvertTo-Json -Depth 2
 [System.IO.File]::WriteAllText((Join-Path $root 'pdf-versions.json'), $versionsJson, (New-Object System.Text.UTF8Encoding($false)))
 
 # תאריך העלאה לכל שיעור חדש (uploads.json) - ממנו האתר בונה את "חדש השבוע".
-# בהעלאת השלמות (-NoEmail) לא רושמים, כדי ששיעורים ישנים לא יופיעו שם כחדשים.
+# רק כשנשלח מייל ($sendMail) - בהעלאת השלמות או נושאים מעורבבים לא רושמים, כדי ששיעורים ישנים לא יופיעו שם כחדשים.
 # קוראים עם UTF-8 מפורש (ראו ההערה על list.json למעלה).
 $uploadsPath = Join-Path $root 'uploads.json'
 $uploads = [ordered]@{}
@@ -363,7 +384,7 @@ if (Test-Path $uploadsPath) {
         }
     } catch { $uploads = [ordered]@{} }
 }
-if (-not $NoEmail -and $newAudioPaths.Count -gt 0) {
+if ($sendMail) {
     $today = Get-Date -Format "yyyy-MM-dd"
     foreach ($f in $newAudioPaths) { $uploads[$f] = $today }
 }
@@ -397,26 +418,18 @@ if ($changes) {
 }
 Write-Host ""
 
-# ---- שלב 4: מייל לרשימת תפוצה על פרשות חדשות (נוסף אוגוסט 2026) ----
-# רץ רק אם יש קבצי הגדרה - אם אין, פשוט מדלגים בשקט.
-# עם -NoEmail (למשל בהעלאת גיבוי/backlog של שיעורים ישנים) - מדלגים
-# על השלב הזה לגמרי, בלי לגעת בשאר התהליך (R2, list.json, git).
-if ($NoEmail) {
-    Write-Host "[4/4] דילוג על שלב המייל (הורץ עם -NoEmail)." -ForegroundColor Yellow
-    Write-Status "דילוג על שליחת מייל (הורץ בלי מייל)." -Kind done
-    Write-Host ""
-} else {
-Write-Host "[4/4] בודק אם צריך לשלוח מייל לרשימת תפוצה..." -ForegroundColor Yellow
-Write-Status "[4/4] בודק אם צריך לשלוח מייל..."
+# ---- שלב 4: מייל לרשימת תפוצה על שיעורים חדשים (נוסף אוגוסט 2026, נוסח חדש ספטמבר 2026) ----
+# נשלח רק כש-$sendMail (ראו למעלה: נושא אחד בלבד, ולא -NoEmail).
+# הנוסח נקבע עם המשתמש (27.9.2026): הכבוד לרב בשורת הנושא, גוף ענייני
+# שמזמין להיכנס לאתר, סיכום PDF מצורף תמיד עם הסבר שנכתב ב-AI ונבדק,
+# וברכת סיום לפי המועד. לשנות רק בתיאום איתו.
 
 $PAIRS = @(
     @('ויקהל','פקודי'), @('תזריע','מצורע'), @('אחרי מות','קדושים'),
     @('בהר','בחוקותי'), @('מטות','מסעי'), @('נצבים','וילך')
 )
-# אותה רשימת מועדים שמוגדרת בקוד ב-index.html (CHUMASHIM["מועדים"]) - חייבת
-# להישאר זהה, כדי שהמייל יציג "מועד X" ולא "פרשת X" לשיעורי מועדים.
+# אותה רשימת מועדים שמוגדרת בקוד ב-index.html (CHUMASHIM["מועדים"]) - חייבת להישאר זהה.
 $MOADIM = @('ראש השנה','יום כיפור','סוכות','שמחת תורה','חנוכה','עשרה בטבת','טו בשבט','תענית אסתר','פורים','פסח','לג בעומר','שבועות','שבעה עשר בתמוז','תשעה באב')
-function Get-ItemPrefix([string]$name) { if ($MOADIM -contains $name) { 'מועד' } else { 'פרשת' } }
 function Get-PageKey([string]$name) {
     foreach ($p in $PAIRS) {
         $combined = $p[0] + ' ' + $p[1]
@@ -424,62 +437,141 @@ function Get-PageKey([string]$name) {
     }
     return $name
 }
-function Get-ParashaKey([string]$relativePath) {
-    $filename = Split-Path $relativePath -Leaf
-    $base = $filename -replace '\.(mp3|m4a)$', ''
-    $tokens = @($base -split '_' | Where-Object { $_ })
-    if ($tokens.Count -gt 0 -and ($tokens[0] -eq 'פרשת' -or $tokens[0] -eq 'מועד')) { $tokens = $tokens[1..($tokens.Count - 1)] }
-    # "עיון" (עיוני/הלכתי) ואחריו אולי נושא השיעור - תמיד בסוף השם. מוסרים מ"עיון"
-    # והלאה לפני חיתוך שיעור/חלק, אחרת זה נחשב בטעות לשנה. זהה ל-index.html.
-    $iI = [array]::IndexOf($tokens, 'עיון')
-    if ($iI -ge 1) { $tokens = $tokens[0..($iI - 1)] }
-    # תגית "שבת <מילה>" (הגדול/שובה/זכור/פרה/החודש/חזון/נחמו וכו') - שיעור
-    # ששייך לתיקיית ולשם הקובץ של מועד אחר (למשל שבת הגדול -> פסח). זוג
-    # טוקנים, תמיד לפני "עיון" אם קיים. זהה ל-index.html.
-    if ($tokens.Count -ge 2 -and $tokens[$tokens.Count - 2] -eq 'שבת') { $tokens = $tokens[0..($tokens.Count - 3)] }
-    # חותכים בתגית המוקדמת מבין "שיעור" (שיעור נפרד) ו"חלק" (המשך אותו שיעור),
-    # כדי שיישארו רק שם הפרשה והשנה. חייב להיות זהה ללוגיקה ב-index.html.
-    $marks = @()
-    foreach ($mark in @('שיעור','חלק')) {
-        $i = [array]::IndexOf($tokens, $mark)
-        if ($i -ge 0) { $marks += $i }
+# תשפז -> תשפ״ז
+function Format-HebYear([string]$y) {
+    if ($y.Length -lt 2) { return $y }
+    return $y.Substring(0, $y.Length - 1) + [char]0x05F4 + $y.Substring($y.Length - 1)
+}
+# שם לתצוגה: "פרשת נח" / "סוכות" / "ל״ג בעומר"
+function Get-TopicName([string]$name) {
+    if ($MOADIM -notcontains $name) { return "פרשת $name" }
+    if ($name -eq 'לג בעומר') { return "ל$([char]0x05F4)ג בעומר" }
+    if ($name -eq 'טו בשבט') { return "ט$([char]0x05F4)ו בשבט" }
+    return $name
+}
+# פירוט שיעור בודד בתוך הנושא: "עיון בדין לקיחת ד' מינים" / "שיעור ב" / "חלק ב" / "שבת הגדול"
+function Get-ShiurDetail($s) {
+    $parts = @()
+    if ($s.Shabbat) { $parts += "שבת $($s.Shabbat)" }
+    if ($s.Lesson) { $parts += "שיעור $($s.Lesson)" }
+    if ($s.Part) { $parts += "חלק $($s.Part)" }
+    if ($s.Iyun) { $parts += $(if ($s.Iyun -eq 'כן') { 'שיעור עיון' } else { "עיון $($s.Iyun)" }) }
+    return ($parts -join ' · ')
+}
+# ברכת סיום. switch ולא hash literal - ב-PowerShell 5 מפתחות hash לא מבחינים באותיות סופיות.
+function Get-MailGreeting($shiurim) {
+    if (@($shiurim | Where-Object { $_.Shabbat }).Count) { return 'שבת שלום' }
+    switch ($shiurim[0].Name) {
+        'ראש השנה'        { return 'כתיבה וחתימה טובה' }
+        'יום כיפור'       { return 'גמר חתימה טובה' }
+        'חנוכה'           { return 'חנוכה שמח' }
+        'פורים'           { return 'פורים שמח' }
+        'עשרה בטבת'       { return 'צום קל' }
+        'תענית אסתר'      { return 'צום קל' }
+        'שבעה עשר בתמוז'  { return 'צום קל' }
+        'תשעה באב'        { return 'צום קל' }
+        'לג בעומר'        { return '' }
+        'טו בשבט'         { return '' }
+        { $MOADIM -contains $_ } { return 'חג שמח' }
+        default           { return 'שבת שלום' }
     }
-    if ($marks.Count -gt 0) {
-        $cut = ($marks | Measure-Object -Minimum).Minimum
-        if ($cut -lt 1) { return $null }
-        $tokens = $tokens[0..($cut - 1)]
+}
+# בונה את המייל מתוך השיעורים החדשים (כולם מאותו נושא). מחזיר Subject, Body (HTML), Attachments.
+function New-ShiurMail($shiurim, [string]$root, [long]$maxAttachBytes) {
+    $enc = { param($t) [System.Net.WebUtility]::HtmlEncode($t) }
+    $first = $shiurim[0]
+    $isMoed = $MOADIM -contains $first.Name
+    $count = $shiurim.Count
+    $topic = Get-TopicName $first.Name
+    $year = Format-HebYear $first.Year
+    $topicWithYear = "$topic $year"
+    $greeting = Get-MailGreeting $shiurim
+    $link = "https://danvlado1234-sketch.github.io/shiurim-parasha/?parasha=" + [uri]::EscapeDataString((Get-PageKey $first.Name))
+
+    # נושא: פרשות בלי שנה (שבועי), מועדים עם שנה
+    $subjTopic = if ($count -eq 1 -and $first.Shabbat) { "שבת $($first.Shabbat) $year" } elseif ($isMoed) { $topicWithYear } else { $topic }
+    $subjWord = if ($count -eq 1) { 'שיעור' } else { 'שיעורים' }
+    $subject = "$subjTopic – $subjWord מאת הרה`"ג רבי יצחק ולדומירסקי"
+
+    $btnStyle = 'display:inline-block;background:#1f4a33;color:#ffffff;padding:11px 26px;border-radius:6px;text-decoration:none;font-weight:bold;line-height:1.4'
+    $countWords = @{ 2 = 'שני'; 3 = 'שלושה'; 4 = 'ארבעה'; 5 = 'חמישה' }
+    if ($count -eq 1) {
+        $detail = Get-ShiurDetail $first
+        $what = if ($isMoed) { "השיעור על $topicWithYear" } else { "השיעור השבועי על $topic" }
+        if ($detail) { $what += " ($detail)" }
+        $intro = "<p>$(& $enc $what) עלה לאתר השיעורים.<br>באתר אפשר להאזין לשיעור ולהוריד אותו, ולמצוא לצדו את כל שיעורי הפרשה והמועדים שנאספו עד היום.</p>"
+        $buttons = "<p style=`"text-align:center;margin:26px 0`"><a href=`"$link`" style=`"$btnStyle`">להאזנה לשיעור באתר</a></p>"
+    } else {
+        $n = if ($countWords.ContainsKey($count)) { $countWords[$count] } else { "$count" }
+        $intro = "<p>$n שיעורים על $(& $enc $(if ($isMoed) { $topicWithYear } else { $topic })) עלו לאתר השיעורים.<br>באתר אפשר להאזין לשיעורים ולהוריד אותם, ולמצוא לצדם את כל שיעורי הפרשה והמועדים שנאספו עד היום.</p>"
+        $btns = foreach ($s in $shiurim) {
+            $label = Get-ShiurDetail $s
+            if (-not $label) { $label = $topicWithYear }
+            "<div style=`"margin:10px 0`"><a href=`"$link`" style=`"$btnStyle`">$(& $enc $label)</a></div>"
+        }
+        $buttons = "<div style=`"text-align:center;margin:22px 0`">" + ($btns -join '') + "</div>"
     }
-    if ($tokens.Count -lt 2) { return $null }
-    $name = ($tokens[0..($tokens.Count - 2)]) -join ' '
-    return Get-PageKey $name
+
+    # צירופים: סיכום PDF תמיד (קטן). שמע - לכל קובץ בנפרד, מהקטן לגדול, כל עוד
+    # הסך נשאר מתחת ל-$maxAttachBytes (מגבלת Gmail 25MB אחרי קידוד base64).
+    $pdfs = @($shiurim | ForEach-Object { [System.IO.Path]::ChangeExtension((Join-Path $root $_.Path), '.pdf') } | Where-Object { Test-Path -LiteralPath $_ })
+    $attachments = @($pdfs)
+    $total = [long](($pdfs | ForEach-Object { (Get-Item -LiteralPath $_).Length } | Measure-Object -Sum).Sum)
+    $audios = @($shiurim | ForEach-Object { Get-Item -LiteralPath (Join-Path $root $_.Path) -ErrorAction SilentlyContinue } | Where-Object { $_ } | Sort-Object Length)
+    foreach ($a in $audios) {
+        if ($total + $a.Length -le $maxAttachBytes) { $attachments += $a.FullName; $total += $a.Length }
+    }
+
+    $summary = ''
+    if ($pdfs.Count) {
+        $forShabbat = if ($greeting -eq 'שבת שלום') { ', לקריאה בשבת' } else { '' }
+        if ($pdfs.Count -eq 1) {
+            $what = if ($count -eq 1) { 'מצורף גם סיכום כתוב של השיעור' } else { 'מצורף גם סיכום כתוב של אחד השיעורים' }
+            $ai = 'הסיכום נכתב בעזרת בינה מלאכותית מתוך הקלטת השיעור, ונבדק לפני הפרסום. ייתכנו בו אי-דיוקים, והשיעור עצמו הוא המקור.'
+        } else {
+            $what = if ($pdfs.Count -eq $count) { 'מצורף סיכום כתוב לכל אחד מהשיעורים' } else { 'מצורפים סיכומים כתובים של חלק מהשיעורים' }
+            $ai = 'הסיכומים נכתבו בעזרת בינה מלאכותית מתוך הקלטות השיעורים, ונבדקו לפני הפרסום. ייתכנו בהם אי-דיוקים, והשיעורים עצמם הם המקור.'
+        }
+        $summary = "<p>$what$forShabbat.<br>$ai</p>"
+    }
+    $closing = if ($greeting) { "<p style=`"margin-top:24px`">$greeting</p>" } else { '' }
+
+    $body = "<div dir=`"rtl`" style=`"font-family:Arial,sans-serif;font-size:16px;line-height:1.75;color:#241F16;text-align:right`">" +
+            "<p>שלום וברכה,</p>$intro$buttons$summary$closing</div>"
+    return @{ Subject = $subject; Body = $body; Attachments = $attachments; PdfCount = $pdfs.Count; AttachBytes = $total }
+}
+# כתובות מקובץ רשימה (UTF-8, בלי שורות ריקות והערות)
+function Read-AddressList([string]$path) {
+    if (-not (Test-Path $path)) { return @() }
+    return @([System.IO.File]::ReadAllLines($path, [System.Text.Encoding]::UTF8) | ForEach-Object { $_.Trim() } |
+        Where-Object { $_ -and -not $_.StartsWith('#') })
 }
 
-$newPaths = $newAudioPaths
-$newKeys = @($newPaths | ForEach-Object { Get-ParashaKey $_ } | Where-Object { $_ } | Sort-Object -Unique)
-
-# מגבלת Gmail היא 25MB לכל ההודעה, וקידוד base64 לצירוף מוסיף כ-37% לגודל -
-# אז קובץ גולמי צריך להיות מתחת ל~18MB כדי שבטוח יעבור. אם החדש של ההרצה הזו
-# (בסך הכל) גדול מזה - לא מצרפים בכלל, רק שולחים קישור, כדי שלא ניכשל בשקט.
-$maxAttachBytes = 18 * 1024 * 1024
-$attachPaths = @($newPaths | ForEach-Object { Join-Path $root $_ } | Where-Object { Test-Path $_ })
-$attachTotalBytes = ($attachPaths | ForEach-Object { (Get-Item $_).Length } | Measure-Object -Sum).Sum
-$canAttach = ($attachPaths.Count -gt 0) -and ($attachTotalBytes -le $maxAttachBytes)
+if (-not $sendMail) {
+    Write-Host "[4/4] לא נשלח מייל - $mailSkipReason." -ForegroundColor Yellow
+    Write-Status "לא נשלח מייל - $mailSkipReason." -Kind done
+    Write-Host ""
+} else {
+Write-Host "[4/4] שולח מייל לרשימת התפוצה..." -ForegroundColor Yellow
+Write-Status "[4/4] שולח מייל לרשימת התפוצה..."
 
 $mailConfigPath = Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'shiurim-mail\mail-config.json'
 $mailingListPath = Join-Path $root 'mailing-list.txt'
+$reservePath = Join-Path $root 'mailing-list-reserve.txt'
 
-if ($newKeys.Count -eq 0) {
-    Write-Host "      אין פרשה חדשה בהרצה הזו - לא נשלח מייל." -ForegroundColor Green
-    Write-Status "אין פרשה חדשה - לא נשלח מייל." -Kind done
-} elseif (-not (Test-Path $mailConfigPath)) {
+if (-not (Test-Path $mailConfigPath)) {
     Write-Host "      הקמת המייל טרם הושלמה (חסר $mailConfigPath) - מדלג." -ForegroundColor Yellow
     Write-Status "הקמת המייל טרם הושלמה - מדלג." -Kind error
 } elseif (-not (Test-Path $mailingListPath)) {
     Write-Host "      אין קובץ mailing-list.txt - מדלג." -ForegroundColor Yellow
     Write-Status "אין רשימת תפוצה - מדלג." -Kind error
 } else {
-    $recipients = @(Get-Content $mailingListPath | ForEach-Object { $_.Trim() } |
-        Where-Object { $_ -and -not $_.StartsWith('#') } | Sort-Object -Unique)
+    $recipients = @(Read-AddressList $mailingListPath | Sort-Object -Unique)
+    # הרחבה הדרגתית: בכל שליחה עוברים עד 10 נמענים מרשימת המילואים לרשימה
+    # הראשית (כבר מהשליחה הזו). נשמר בקבצים רק אם השליחה הצליחה במלואה.
+    $growBy = 10
+    $newcomers = @(Read-AddressList $reservePath | Where-Object { $recipients -notcontains $_ } | Select-Object -Unique | Select-Object -First $growBy)
+    $recipients = @($recipients + $newcomers)
     if ($recipients.Count -eq 0) {
         Write-Host "      רשימת התפוצה ריקה - לא נשלח מייל." -ForegroundColor Green
         Write-Status "רשימת התפוצה ריקה - לא נשלח מייל." -Kind done
@@ -489,29 +581,14 @@ if ($newKeys.Count -eq 0) {
             if ($cfg.AppPassword -match 'PASTE_') {
                 Write-Host "      עדיין לא הוזן App Password אמיתי ב-$mailConfigPath - מדלג." -ForegroundColor Yellow
             } else {
-                $siteBase = "https://danvlado1234-sketch.github.io/shiurim-parasha/"
-                $items = $newKeys | ForEach-Object {
-                    $link = $siteBase + "?parasha=" + [uri]::EscapeDataString($_)
-                    "<li><a href=`"$link`">$(Get-ItemPrefix $_) $_</a></li>"
-                }
-                $linksHtml = "<ul>" + ($items -join "") + "</ul>"
-                if ($canAttach) {
-                    $body = "<p>שיעורים חדשים עלו, מצורפים לנוחיותכם. קישור ישיר (למי שמעדיף):</p>$linksHtml"
-                } else {
-                    $body = "<p>שיעורים חדשים עלו. הקובץ גדול מדי לצירוף ישיר במייל - להאזנה דרך הקישור:</p>$linksHtml"
-                }
-                $subject = if ($newKeys.Count -eq 1) { "שיעור חדש: $(Get-ItemPrefix $newKeys[0]) $($newKeys[0])" } else { "שיעורים חדשים עלו" }
+                $mail = New-ShiurMail $newShiurim $root (18 * 1024 * 1024)
 
                 $securePw = ConvertTo-SecureString $cfg.AppPassword -AsPlainText -Force
                 $cred = New-Object System.Management.Automation.PSCredential($cfg.FromEmail, $securePw)
                 # Send-MailMessage מחייב -To גם כשמשתמשים ב-Bcc, אז שמים שם את השולח עצמו.
                 # הנמענים האמיתיים ב-Bcc בלבד - כדי שאף נמען לא יראה את כתובות האחרים.
-                # -Encoding חובה: בלי זה Send-MailMessage שולח את הכותרת/הגוף בקידוד
-                # שלא תומך בעברית, וכל הטקסט העברי מגיע אצל הנמען כסימני "?????".
-                # שליחה במנות: Gmail מגביל את מספר הנמענים בהודעה אחת (~100 ב-SMTP)
-                # ואת סך הנמענים ביום (~500 בחשבון רגיל). לכן מחלקים את הרשימה
-                # למנות של $batchSize, ולא עוברים את $dailyCap בהרצה אחת - מעבר
-                # לזה Gmail חוסם את השליחה מהחשבון ל-24 שעות.
+                # -Encoding חובה: בלי זה העברית מגיעה כ-"?????".
+                # שליחה במנות: Gmail מגביל ~100 נמענים להודעה ו-~500 ביום.
                 $batchSize = 90
                 $dailyCap = 450
                 $skipped = @()
@@ -519,28 +596,47 @@ if ($newKeys.Count -eq 0) {
                     $skipped = @($recipients[$dailyCap..($recipients.Count - 1)])
                     $recipients = @($recipients[0..($dailyCap - 1)])
                 }
-                $sent = 0; $failedBatches = 0
+                $sent = 0; $failed = @()
                 for ($b = 0; $b -lt $recipients.Count; $b += $batchSize) {
                     $batch = @($recipients[$b..([math]::Min($b + $batchSize, $recipients.Count) - 1)])
                     $mailParams = @{
                         From = $cfg.FromEmail; To = $cfg.FromEmail; Bcc = $batch
-                        Subject = $subject; Body = $body; BodyAsHtml = $true
+                        Subject = $mail.Subject; Body = $mail.Body; BodyAsHtml = $true
                         Encoding = [System.Text.Encoding]::UTF8
                         SmtpServer = "smtp.gmail.com"; Port = 587; UseSsl = $true; Credential = $cred
                     }
-                    if ($canAttach) { $mailParams.Attachments = $attachPaths }
+                    if ($mail.Attachments.Count) { $mailParams.Attachments = $mail.Attachments }
                     try {
                         Send-MailMessage @mailParams -ErrorAction Stop
                         $sent += $batch.Count
                     } catch {
-                        $failedBatches++
+                        $failed += $batch
                         Write-Host "      !! מנה $([math]::Floor($b / $batchSize) + 1) ($($batch.Count) נמענים) נכשלה: $($_.Exception.Message)" -ForegroundColor Red
                     }
                     if ($b + $batchSize -lt $recipients.Count) { Start-Sleep -Seconds 3 }
                 }
-                $how = if ($canAttach) { "עם השיעור מצורף" } else { "רק קישור - הקובץ ($([math]::Round($attachTotalBytes/1MB,1))MB) גדול מדי לצירוף" }
-                Write-Host "      מייל נשלח ל-$sent נמענים (Bcc, במנות של עד $batchSize), $how." -ForegroundColor Green
-                Write-Status "מייל נשלח ל-$sent נמענים." -Kind $(if ($failedBatches) { 'error' } else { 'done' })
+                $att = "$($mail.PdfCount) סיכומים, $($mail.Attachments.Count - $mail.PdfCount) קובצי שמע מצורפים"
+                Write-Host "      מייל נשלח ל-$sent נמענים ($att). נושא: $($mail.Subject)" -ForegroundColor Green
+                Write-Status "מייל נשלח ל-$sent נמענים." -Kind $(if ($failed.Count) { 'error' } else { 'done' })
+
+                if ($failed.Count) {
+                    # מי שלא קיבל נרשם לקובץ (לא בריפו - .gitignore), כדי שאפשר יהיה לשלוח לו שוב.
+                    # הרחבת הרשימה לא נשמרת - הנמענים החדשים יישארו במילואים לפעם הבאה.
+                    $failedPath = Join-Path $root 'mail-failed.txt'
+                    $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
+                    $lines = @("# $stamp | $($mail.Subject)") + $failed
+                    [System.IO.File]::AppendAllLines($failedPath, [string[]]$lines, (New-Object System.Text.UTF8Encoding($false)))
+                    Write-Host "      !! $($failed.Count) נמענים לא קיבלו את המייל - נרשמו ב-mail-failed.txt" -ForegroundColor Red
+                    Write-Status "$($failed.Count) נמענים לא קיבלו את המייל (נרשמו ב-mail-failed.txt)." -Kind error
+                } elseif ($newcomers.Count) {
+                    $utf8 = New-Object System.Text.UTF8Encoding($false)
+                    [System.IO.File]::AppendAllLines($mailingListPath, [string[]]$newcomers, $utf8)
+                    $keep = @([System.IO.File]::ReadAllLines($reservePath, [System.Text.Encoding]::UTF8) | Where-Object { $newcomers -notcontains $_.Trim() })
+                    [System.IO.File]::WriteAllLines($reservePath, [string[]]$keep, $utf8)
+                    $left = @(Read-AddressList $reservePath).Count
+                    Write-Host "      נוספו $($newcomers.Count) נמענים חדשים לרשימה (נשארו $left במילואים)." -ForegroundColor Green
+                    Write-Status "נוספו $($newcomers.Count) נמענים חדשים לרשימה (נשארו $left במילואים)." -Kind done
+                }
                 if ($skipped.Count) {
                     Write-Host "      !! $($skipped.Count) נמענים לא קיבלו מייל - מעבר למגבלה היומית של Gmail ($dailyCap). הראשון שלא נשלח: $($skipped[0])" -ForegroundColor Red
                     Write-Status "$($skipped.Count) נמענים מעבר למגבלה היומית של Gmail לא קיבלו מייל." -Kind error
