@@ -1563,7 +1563,8 @@
 
   // ====== התקנת האפליקציה ======
   // אנדרואיד/מחשב (כרום): הדפדפן מאפשר כפתור התקנה (beforeinstallprompt).
-  // אייפון: אין כפתור כזה - מציגים הסבר קצר ("שיתוף" ← "הוסף למסך הבית").
+  // אייפון: אין התקנה ישירה (אפל לא מאפשרת) - הכפתור מוביל לדף השער, שם נפתחת
+  // הדרכה לפי הדפדפן, ומשם מותקנת האפליקציה המאוחדת (ולא אפליקציית הפרשות הישנה).
   // לא מוצג כשכבר פתוחים כאפליקציה, או אחרי שסגרו את ההצעה.
   let installEvt = null;
   const INSTALL_KEY = 'parasha:installDismissed';
@@ -1573,10 +1574,9 @@
   function installHtml(){
     if (isStandalone()) return migrateHtml();
     if (installDismissed() || !(installEvt || isIOS)) return '';
-    const sub = installEvt ? 'פרשות ומשניות במקום אחד, ממסך הבית' : 'בספארי: כפתור השיתוף ⎋ ואז "הוסף למסך הבית"';
-    return `<div class="install"><img src="${installEvt ? '/icons/icon-192.png' : 'icons/icon-192.png'}" alt="">
-      <div class="install-gr"><div class="install-t">התקינו את האפליקציה</div><div class="install-s">${sub}</div></div>
-      ${installEvt ? '<button class="install-go" id="installGo">התקנה</button>' : ''}
+    return `<div class="install"><img src="/icons/icon-192.png" alt="">
+      <div class="install-gr"><div class="install-t">התקינו את האפליקציה</div><div class="install-s">פרשות ומשניות במקום אחד, ממסך הבית</div></div>
+      ${installEvt ? '<button class="install-go" id="installGo">התקנה</button>' : '<a class="install-go" href="/?install=1">התקנה</a>'}
       <button class="install-x" id="installX" aria-label="סגור">${ICON_X}</button></div>`;
   }
   function refreshInstall(){ const slot = document.getElementById('installSlot'); if (slot) slot.innerHTML = installHtml(); }
