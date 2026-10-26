@@ -339,10 +339,21 @@ if (-not $sendMail -and -not $NoEmail -and $newAudioPaths.Count -gt 0) {
 # ---- שלב 1: העלאה ל-R2 ----
 Write-Host "[1/4] מעלה שיעורים ל-R2..." -ForegroundColor Yellow
 Write-Status "[1/4] מעלה שיעורים לענן..."
+$uploadFailed = @()
 foreach ($m in $chumashim) {
     Write-Host ("      -> " + $m.Name)
     & "$root\rclone.exe" copy "$($m.FullName)" "r2:shiurim-parasha/$($m.Name)" --transfers 8 --checkers 8
-    if ($LASTEXITCODE -ne 0) { Write-Host "      !! שגיאה בהעלאת $($m.Name)" -ForegroundColor Red }
+    if ($LASTEXITCODE -ne 0) { Write-Host "      !! שגיאה בהעלאת $($m.Name)" -ForegroundColor Red; $uploadFailed += $m.Name }
+}
+# העלאה שנכשלה - עוצרים כאן: בלי list.json, בלי git ובלי מייל, כדי שהאתר לא יקשר לקובץ שלא בענן.
+# list.json לא השתנה, אז בהרצה הבאה השיעורים החדשים יזוהו שוב כחדשים (כולל המייל).
+if ($uploadFailed.Count) {
+    Write-Host "      !! ההעלאה לענן נכשלה ($($uploadFailed -join ', ')). עוצר - האתר לא עודכן ולא נשלח מייל." -ForegroundColor Red
+    Write-Host "         אפשר פשוט להריץ שוב (למשל כשהאינטרנט חוזר)." -ForegroundColor Red
+    Write-Status "ההעלאה לענן נכשלה ($($uploadFailed -join ', ')). האתר לא עודכן ולא נשלח מייל - אפשר להריץ שוב." -Kind error -Final
+    Write-Host ""
+    Read-Host "לחץ Enter לסגירה"
+    exit 1
 }
 Write-Host "      העלאה ל-R2 הושלמה." -ForegroundColor Green
 Write-Status "ההעלאה לענן הושלמה." -Kind done
@@ -399,11 +410,13 @@ Write-Host "[3/4] דוחף ל-GitHub..." -ForegroundColor Yellow
 Write-Status "[3/4] מפרסם את העדכון באתר..."
 git add list.json pdf-versions.json uploads.json index.html 2>$null
 $changes = git status --porcelain list.json pdf-versions.json uploads.json index.html
+$pushFailed = $false
 if ($changes) {
     $stamp = Get-Date -Format "yyyy-MM-dd HH:mm"
     git commit -m "עדכון שיעורים $stamp" | Out-Null
-    git push origin HEAD:main
-    if ($LASTEXITCODE -eq 0) {
+    $commitOk = ($LASTEXITCODE -eq 0)
+    if ($commitOk) { git push origin HEAD:main }
+    if ($commitOk -and $LASTEXITCODE -eq 0) {
         Write-Host "      נדחף ל-GitHub בהצלחה!" -ForegroundColor Green
         Write-Status "האתר עודכן בהצלחה." -Kind done
     } else {
@@ -411,6 +424,7 @@ if ($changes) {
         Write-Host "         git pull origin main --no-rebase --no-edit" -ForegroundColor Red
         Write-Host "         git push origin HEAD:main" -ForegroundColor Red
         Write-Status "פרסום העדכון באתר נכשל." -Kind error
+        $pushFailed = $true
     }
 } else {
     Write-Host "      אין שינויים חדשים ל-GitHub." -ForegroundColor Green
@@ -547,6 +561,12 @@ function Read-AddressList([string]$path) {
         Where-Object { $_ -and -not $_.StartsWith('#') })
 }
 
+# האתר לא עודכן - לא שולחים מייל שמזמין לשיעור שעוד לא שם.
+# שימו לב: list.json כבר עודכן מקומית, אז בהרצה הבאה המייל לא יישלח לבד.
+if ($pushFailed -and $sendMail) {
+    $sendMail = $false
+    $mailSkipReason = 'הפרסום באתר נכשל, והמייל היה מפנה לשיעור שעוד לא באתר. אחרי תיקון הדחיפה - המייל לא יישלח לבד'
+}
 if (-not $sendMail) {
     Write-Host "[4/4] לא נשלח מייל - $mailSkipReason." -ForegroundColor Yellow
     Write-Status "לא נשלח מייל - $mailSkipReason." -Kind done
@@ -650,6 +670,16 @@ if (-not (Test-Path $mailConfigPath)) {
 }
 }
 
+if ($pushFailed) {
+    Write-Status "ההרצה הסתיימה, אבל האתר לא עודכן (הדחיפה ל-GitHub נכשלה)." -Kind error -Final
+    Write-Host ""
+    Write-Host "==============================================" -ForegroundColor Red
+    Write-Host "     הסתיים עם שגיאה - האתר לא עודכן" -ForegroundColor Red
+    Write-Host "==============================================" -ForegroundColor Red
+    Write-Host ""
+    Read-Host "לחץ Enter לסגירה"
+    exit 1
+}
 Write-Status "🎉 הכל הושלם!" -Kind done -Final
 
 Write-Host ""
