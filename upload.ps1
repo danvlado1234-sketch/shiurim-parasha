@@ -30,7 +30,11 @@ if (Test-Path $mailStaged) {
 }
 
 # תיקיות שאינן חומשים - לדלג עליהן!
-$skip = @('.github', '.git', 'shiurim-parasha')
+# רשימה סגורה: קובצי עבודה, אייקונים וארכיונים אינם תיקיות שיעורים.
+$contentDirectoryNames = @('בראשית', 'שמות', 'ויקרא', 'במדבר', 'דברים', 'מועדים')
+$chumashim = @(Get-ChildItem -LiteralPath $root -Directory |
+    Where-Object { $contentDirectoryNames -contains $_.Name })
+if (-not $chumashim.Count) { throw 'לא נמצאו תיקיות שיעורים להעלאה.' }
 
 # ---- דף סטטוס חי (נוסף אוגוסט 2026) ----
 # בעיה שהתעוררה בפועל: כשההעלאה רצה, אין דרך לדעת "מה קורה עכשיו" בלי
@@ -122,10 +126,10 @@ function Test-IsAudioOnlyMp4 {
     } catch { return $false }
 }
 
-$mp4Files = Get-ChildItem -Path $root -Recurse -File -Filter '*.mp4' |
+$mp4Files = Get-ChildItem -LiteralPath $chumashim.FullName -Recurse -File -Filter '*.mp4' |
     Where-Object { $_.FullName -notmatch '\\\.git\\' }
 # גם סיכומי PDF: השם שלהם חייב להיות זהה לשם השמע, אחרת כפתור "סיכום" לא יופיע
-$spacedFiles = Get-ChildItem -Path $root -Recurse -File |
+$spacedFiles = Get-ChildItem -LiteralPath $chumashim.FullName -Recurse -File |
     Where-Object { $_.Extension -match '^\.(m4a|mp3|pdf)$' -and $_.Name -match ' ' -and $_.FullName -notmatch '\\\.git\\' }
 # גרשיים/גרש בשם (למשל השנה הוקלדה תשפ"ז במקום תשפז) - האתר לא מזהה אותם.
 # חוץ מנושא שיעור העיון (מה שאחרי "_עיון_"), שם הם חלק מהכותרת: לקיחת_ד'_מינים
@@ -136,7 +140,7 @@ function Get-CleanBase([string]$b) {
     if ($i -ge 0) { return ($b.Substring(0, $i) -replace $quoteChars, '') + $b.Substring($i) }
     return $b -replace $quoteChars, ''
 }
-$quotedFiles = Get-ChildItem -Path $root -Recurse -File |
+$quotedFiles = Get-ChildItem -LiteralPath $chumashim.FullName -Recurse -File |
     Where-Object { $_.Extension -match '^\.(m4a|mp3|pdf)$' -and (Get-CleanBase $_.BaseName) -cne ($_.BaseName -replace ' ', '_') -and $_.FullName -notmatch '\\\.git\\' }
 
 if ($mp4Files -or $spacedFiles -or $quotedFiles) {
@@ -161,7 +165,7 @@ if ($mp4Files -or $spacedFiles -or $quotedFiles) {
 
     # m4a/mp3/pdf עם רווחים ו/או גרשיים בשם (קובץ שהגיע במייל או הוקלד ידנית) -
     # מחליפים רווחים בקו תחתון ומוחקים גרשיים. אחרי תיקון ה-mp4, כי שמו כבר השתנה.
-    $toClean = @(Get-ChildItem -Path $root -Recurse -File |
+    $toClean = @(Get-ChildItem -LiteralPath $chumashim.FullName -Recurse -File |
         Where-Object { $_.Extension -match '^\.(m4a|mp3|pdf)$' -and (Get-CleanBase $_.BaseName) -cne $_.BaseName -and $_.FullName -notmatch '\\\.git\\' })
     foreach ($f in $toClean) {
         $newName = (Get-CleanBase $f.BaseName) + $f.Extension
@@ -177,8 +181,7 @@ if ($mp4Files -or $spacedFiles -or $quotedFiles) {
     Write-Host ""
 }
 
-$chumashim = Get-ChildItem -Path $root -Directory |
-    Where-Object { $_.Name -notmatch '^\.' -and $skip -notcontains $_.Name }
+# $chumashim נבחרו מראש מתוך רשימת תיקיות התוכן בלבד.
 
 # ---- בדיקת שמות קבצים (נוסף ספטמבר 2026) ----
 # בעיה: קובץ ששמו לא תקין עולה לענן ונכנס לרשימה, אבל האתר מתעלם ממנו -
@@ -342,7 +345,7 @@ Write-Status "[1/4] מעלה שיעורים לענן..."
 $uploadFailed = @()
 foreach ($m in $chumashim) {
     Write-Host ("      -> " + $m.Name)
-    & "$root\rclone.exe" copy "$($m.FullName)" "r2:shiurim-parasha/$($m.Name)" --transfers 8 --checkers 8
+    & "$root\rclone.exe" copy "$($m.FullName)" "r2:shiurim-parasha/$($m.Name)" --ignore-case --include "*.m4a" --include "*.mp3" --include "*.pdf" --transfers 8 --checkers 8
     if ($LASTEXITCODE -ne 0) { Write-Host "      !! שגיאה בהעלאת $($m.Name)" -ForegroundColor Red; $uploadFailed += $m.Name }
 }
 # העלאה שנכשלה - עוצרים כאן: בלי list.json, בלי git ובלי מייל, כדי שהאתר לא יקשר לקובץ שלא בענן.
