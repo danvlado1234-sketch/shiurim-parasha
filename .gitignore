@@ -5,6 +5,8 @@
 
 # כלי ההעלאה נשאר מקומי
 rclone.exe
+rclone.conf
+*mail-config*.json
 
 # רשימת תפוצה - כתובות מייל פרטיות, לעולם לא בריפו ציבורי
 mailing-list.txt

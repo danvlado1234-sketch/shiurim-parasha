@@ -454,6 +454,10 @@ function Get-PageKey([string]$name) {
     }
     return $name
 }
+function Get-ShiurLink($shiur) {
+    $section = if ($shiur.Iyun) { 'iyun' } else { 'p' }
+    return "https://danvlado1234-sketch.github.io/#/$section/" + [uri]::EscapeDataString((Get-PageKey $shiur.Name))
+}
 # תשפז -> תשפ״ז
 function Format-HebYear([string]$y) {
     if ($y.Length -lt 2) { return $y }
@@ -503,7 +507,7 @@ function New-ShiurMail($shiurim, [string]$root, [long]$maxAttachBytes) {
     $year = Format-HebYear $first.Year
     $topicWithYear = "$topic $year"
     $greeting = Get-MailGreeting $shiurim
-    $link = "https://danvlado1234-sketch.github.io/shiurim-parasha/?parasha=" + [uri]::EscapeDataString((Get-PageKey $first.Name))
+    $link = Get-ShiurLink $first
 
     # נושא: פרשות בלי שנה (שבועי), מועדים עם שנה
     $subjTopic = if ($count -eq 1 -and $first.Shabbat) { "שבת $($first.Shabbat) $year" } elseif ($isMoed) { $topicWithYear } else { $topic }
@@ -524,7 +528,8 @@ function New-ShiurMail($shiurim, [string]$root, [long]$maxAttachBytes) {
         $btns = foreach ($s in $shiurim) {
             $label = Get-ShiurDetail $s
             if (-not $label) { $label = $topicWithYear }
-            "<div style=`"margin:10px 0`"><a href=`"$link`" style=`"$btnStyle`">$(& $enc $label)</a></div>"
+            $lessonLink = Get-ShiurLink $s
+            "<div style=`"margin:10px 0`"><a href=`"$lessonLink`" style=`"$btnStyle`">$(& $enc $label)</a></div>"
         }
         $buttons = "<div style=`"text-align:center;margin:22px 0`">" + ($btns -join '') + "</div>"
     }
