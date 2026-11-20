@@ -119,8 +119,9 @@ git checkout -- .
 
    מצפים: רשימה שכוללת גם shiurim וגם shiurim-parasha.
    אם shiurim-parasha לא מופיע - המפתח הקיים מוגבל לדלי
-   הישן, ויש ליצור ב-Cloudflare מפתח עם הרשאה לכל
-   החשבון (אז נעדכן את rclone.conf).
+   הישן, ויש ליצור ב-Cloudflare מפתח R2 עם הרשאת Object Read & Write
+   המוגבלת לדליים shiurim ו-shiurim-parasha בלבד (ולא לכל החשבון),
+   ואז לעדכן את rclone.conf.
 
 בדיקה 2 - git מחובר נכון:
 
@@ -137,16 +138,20 @@ git status
 קישור לשיעור ועם השמע מצורף אם הוא קטן מ-18MB. אם חסר אחד
 משני הקבצים הבאים - שלב המייל פשוט מדלג, בלי להפריע לשאר.
 
-1. mailing-list.txt - בתיקייה הראשית, כתובת מייל בכל שורה.
-   שורה שמתחילה ב-# נחשבת הערה. (חסום ב-.gitignore - לא
-   עולה לגיטהאב.)
+1. mailing-list.txt - כתובת מייל בכל שורה (שורה שמתחילה ב-# היא הערה).
+   מומלץ לשמור אותו מחוץ לריפו, בתיקייה:
+      %APPDATA%\shiurim-mail\mailing-list.txt
+   (נתמך גם בתיקייה הראשית וחסום ב-.gitignore, אבל שמירה ב-AppData
+   מבטיחה שלא יועלה לעולם בטעות לגיטהאב.)
 
-2. קובץ הגדרות בנתיב:
-      %APPDATA%\shiurim-mail\mail-config.json
-   בתוכן:
-      { "FromEmail": "הכתובת@gmail.com", "AppPassword": "סיסמת-אפליקציה" }
-   AppPassword = סיסמת אפליקציה של Gmail (לא הסיסמה הרגילה),
-   נוצרת בהגדרות האבטחה של חשבון גוגל.
+2. פרטי התחברות מוצפנים ב-Windows DPAPI בנתיב:
+      %APPDATA%\shiurim-mail\mail-cred.xml
+   ליצירה מאובטחת (הסיסמה לעולם לא נשמרת בטקסט גלוי!) מריצים
+   פעם אחת ב-PowerShell:
+      New-Item -ItemType Directory -Force "$env:APPDATA\shiurim-mail" | Out-Null
+      (Get-Credential) | Export-Clixml "$env:APPDATA\shiurim-mail\mail-cred.xml"
+   בחלון שנפתח: בשם המשתמש מזינים את כתובת ה-Gmail, ובסיסמה את
+   סיסמת האפליקציה (App Password) שנוצרה בהגדרות האבטחה של גוגל.
 
 
 -----------------------------------------------------------

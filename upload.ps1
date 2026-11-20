@@ -13,20 +13,35 @@ $root = $PSScriptRoot
 if (-not $root) { $root = (Get-Location).Path }
 Set-Location $root
 
-# התקנת הגדרת מייל שהונחה זמנית בתיקייה הראשית (מחוץ לריפו): אם אין עדיין
-# mail-config.json ב-AppData של המחשב הזה, מעבירים אותו לשם ומוחקים את העותק.
-# (קלוד רואה AppData אחר מזה של המשתמש, אז כך הוא מעביר הגדרה בלי הקלדה.)
-$mailStaged = Join-Path (Split-Path $root -Parent) 'mail-config.install.json'
-$mailTarget = Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'shiurim-mail\mail-config.json'
-if (Test-Path $mailStaged) {
+# אכיפת TLS 1.2+ בתקשורת יוצאת (חיוני ב-Windows PowerShell 5.1)
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
+# הצפנה אוטומטית של קובץ הגדרת המייל הישן (mail-config.json בטקסט גלוי) ל-mail-cred.xml מוצפן ב-Windows DPAPI
+$mailDir = Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'shiurim-mail'
+$mailCredPath = Join-Path $mailDir 'mail-cred.xml'
+$legacyMailConfigPath = Join-Path $mailDir 'mail-config.json'
+if (Test-Path -LiteralPath $legacyMailConfigPath) {
     try {
-        if (-not (Test-Path $mailTarget)) {
-            New-Item -ItemType Directory -Force (Split-Path $mailTarget) | Out-Null
-            Copy-Item $mailStaged $mailTarget
-            Write-Host "הגדרת המייל הותקנה ב-$mailTarget" -ForegroundColor Green
+        if (-not (Test-Path -LiteralPath $mailCredPath)) {
+            $cfg = Get-Content -LiteralPath $legacyMailConfigPath -Raw | ConvertFrom-Json
+            if ($cfg.FromEmail -and $cfg.AppPassword -and ($cfg.AppPassword -notmatch 'PASTE_')) {
+                $securePw = ConvertTo-SecureString $cfg.AppPassword -AsPlainText -Force
+                $migrated = New-Object System.Management.Automation.PSCredential($cfg.FromEmail, $securePw)
+                New-Item -ItemType Directory -Force -Path $mailDir | Out-Null
+                $migrated | Export-Clixml -Path $mailCredPath
+                $verified = Import-Clixml -Path $mailCredPath
+                if ($verified -and $verified.UserName) {
+                    [System.IO.File]::WriteAllText($legacyMailConfigPath, '', (New-Object System.Text.UTF8Encoding($false)))
+                    Remove-Item -LiteralPath $legacyMailConfigPath -Force
+                    Write-Host "סיסמת המייל הוצפנה ב-Windows DPAPI ($mailCredPath); הקובץ הישן בטקסט גלוי נמחק." -ForegroundColor Green
+                }
+            }
+        } else {
+            [System.IO.File]::WriteAllText($legacyMailConfigPath, '', (New-Object System.Text.UTF8Encoding($false)))
+            Remove-Item -LiteralPath $legacyMailConfigPath -Force
+            Write-Host "נוקה קובץ mail-config.json ישן בטקסט גלוי." -ForegroundColor Yellow
         }
-        Remove-Item $mailStaged -Force
-    } catch { Write-Host "!! התקנת הגדרת המייל נכשלה: $($_.Exception.Message)" -ForegroundColor Red }
+    } catch { Write-Host "!! הצפנת mail-config.json נכשלה: $($_.Exception.Message)" -ForegroundColor Red }
 }
 
 # תיקיות שאינן חומשים - לדלג עליהן!
@@ -89,9 +104,23 @@ Write-Host ""
 # וממשיכים: ההעלאה לענן לא תלויה בזה.
 Write-Host "[0/4] מושך עדכונים מ-GitHub..." -ForegroundColor Yellow
 Write-Status "מושך עדכונים מ-GitHub..."
+$headBefore = (git rev-parse HEAD)
 git pull origin main --no-rebase --no-edit
 if ($LASTEXITCODE -eq 0) {
     Write-Host "      מעודכן." -ForegroundColor Green
+    $headAfter = (git rev-parse HEAD)
+    if ($headBefore -and $headAfter -and ($headBefore -ne $headAfter)) {
+        $changedScripts = @(git diff --name-only $headBefore $headAfter | Where-Object { $_ -match '\.(ps1|bat|cmd)$' })
+        if ($changedScripts.Count -gt 0) {
+            Write-Host "      !! אזהרת אבטחה: העדכון מ-GitHub שינה סקריפטים: $($changedScripts -join ', ')" -ForegroundColor Red
+            Write-Status "אזהרת אבטחה: סקריפטים השתנו בעדכון מ-GitHub ($($changedScripts -join ', ')). נדרש אישור בחלון." -Kind error
+            $ans = (Read-Host "      אם ביצעתם את השינוי במודע, הקלידו 'כן' להמשך (אחרת לחצו Enter לעצירה)").Trim()
+            if ($ans -ne 'כן' -and $ans -ne 'y' -and $ans -ne 'yes') {
+                Write-Status "ההרצה נעצרה עקב שינוי סקריפטים מ-GitHub." -Kind error -Final
+                exit 1
+            }
+        }
+    }
 } else {
     # רק אם באמת נשאר מיזוג חלקי (בלי 2>$null: ב-PowerShell 5 עם Stop, פלט
     # שגיאה מופנה של git עוצר את כל הסקריפט)
@@ -152,10 +181,10 @@ if ($mp4Files -or $spacedFiles -or $quotedFiles) {
         if (Test-IsAudioOnlyMp4 -Path $f.FullName) {
             $newName = ($f.BaseName -replace ' ', '_') + '.m4a'
             $newPath = Join-Path $f.DirectoryName $newName
-            if (Test-Path $newPath) {
+            if (Test-Path -LiteralPath $newPath) {
                 Write-Host "      !! $($f.Name) - כבר קיים קובץ בשם $newName, לא הוחלף (בדקו ידנית)" -ForegroundColor Red
             } else {
-                Rename-Item -Path $f.FullName -NewName $newName
+                Rename-Item -LiteralPath $f.FullName -NewName $newName
                 Write-Host "      תוקן: $($f.Name) -> $newName" -ForegroundColor Green
             }
         } else {
@@ -170,10 +199,10 @@ if ($mp4Files -or $spacedFiles -or $quotedFiles) {
     foreach ($f in $toClean) {
         $newName = (Get-CleanBase $f.BaseName) + $f.Extension
         $newPath = Join-Path $f.DirectoryName $newName
-        if (Test-Path $newPath) {
+        if (Test-Path -LiteralPath $newPath) {
             Write-Host "      !! $($f.Name) - כבר קיים קובץ בשם $newName, לא הוחלף (בדקו ידנית)" -ForegroundColor Red
         } else {
-            Rename-Item -Path $f.FullName -NewName $newName
+            Rename-Item -LiteralPath $f.FullName -NewName $newName
             Write-Host "      תוקן: $($f.Name) -> $newName" -ForegroundColor Green
         }
     }
@@ -380,7 +409,7 @@ $json = ConvertTo-Json @($files) -Depth 1
 # שסיכום שהוחלף ייפתח מחדש ולא מהמטמון של הדפדפן/הטלפון בכתובת הישנה.
 $pdfVersions = [ordered]@{}
 foreach ($f in ($files | Where-Object { $_ -match '\.pdf$' })) {
-    $pdfVersions[$f] = (Get-FileHash -Algorithm MD5 -Path (Join-Path $root $f)).Hash.Substring(0, 8).ToLower()
+    $pdfVersions[$f] = (Get-FileHash -Algorithm MD5 -LiteralPath (Join-Path $root $f)).Hash.Substring(0, 8).ToLower()
 }
 $versionsJson = if ($pdfVersions.Count) { $pdfVersions | ConvertTo-Json -Depth 2 } else { '{}' }
 [System.IO.File]::WriteAllText((Join-Path $root 'pdf-versions.json'), $versionsJson, (New-Object System.Text.UTF8Encoding($false)))
@@ -562,11 +591,60 @@ function New-ShiurMail($shiurim, [string]$root, [long]$maxAttachBytes) {
             "<p>שלום וברכה,</p>$intro$buttons$summary$closing</div>"
     return @{ Subject = $subject; Body = $body; Attachments = $attachments; PdfCount = $pdfs.Count; AttachBytes = $total }
 }
-# כתובות מקובץ רשימה (UTF-8, בלי שורות ריקות והערות)
+# כתובות מקובץ רשימה (UTF-8, בלי שורות ריקות והערות, עם בדיקת תקינות כתובת)
 function Read-AddressList([string]$path) {
-    if (-not (Test-Path $path)) { return @() }
-    return @([System.IO.File]::ReadAllLines($path, [System.Text.Encoding]::UTF8) | ForEach-Object { $_.Trim() } |
-        Where-Object { $_ -and -not $_.StartsWith('#') })
+    if (-not (Test-Path -LiteralPath $path)) { return @() }
+    $valid = New-Object System.Collections.Generic.List[string]
+    foreach ($raw in [System.IO.File]::ReadAllLines($path, [System.Text.Encoding]::UTF8)) {
+        $addr = $raw.Trim()
+        if (-not $addr -or $addr.StartsWith('#')) { continue }
+        try {
+            $parsed = New-Object System.Net.Mail.MailAddress($addr)
+            if ($parsed.Address -eq $addr -and $addr -notmatch '[\r\n]') { $valid.Add($addr) }
+            else { Write-Host "      !! כתובת מייל לא תקינה דולגה: $addr" -ForegroundColor Yellow }
+        } catch {
+            Write-Host "      !! כתובת מייל לא תקינה דולגה: $addr" -ForegroundColor Yellow
+        }
+    }
+    return @($valid)
+}
+
+# טעינת פרטי התחברות מוצפנים ב-Windows DPAPI (mail-cred.xml).
+# אם קיים עדיין mail-config.json ישן בטקסט גלוי — מצפינים אותו אוטומטית ל-mail-cred.xml ומוחקים את הקובץ הגלוי.
+function Get-EncryptedMailCredential([string]$mailDir) {
+    $credPath = Join-Path $mailDir 'mail-cred.xml'
+    $legacyPath = Join-Path $mailDir 'mail-config.json'
+    if ((-not (Test-Path -LiteralPath $credPath)) -and (Test-Path -LiteralPath $legacyPath)) {
+        $cfg = Get-Content -LiteralPath $legacyPath -Raw | ConvertFrom-Json
+        if (-not $cfg.FromEmail -or -not $cfg.AppPassword -or ($cfg.AppPassword -match 'PASTE_')) {
+            return $null
+        }
+        $securePw = ConvertTo-SecureString $cfg.AppPassword -AsPlainText -Force
+        $migrated = New-Object System.Management.Automation.PSCredential($cfg.FromEmail, $securePw)
+        New-Item -ItemType Directory -Force -Path $mailDir | Out-Null
+        $migrated | Export-Clixml -Path $credPath
+        # מוודאים שהקובץ המוצפן נטען תקין לפני שמוחקים את הקובץ הישן בטקסט גלוי
+        $verified = Import-Clixml -Path $credPath
+        if ($verified -and $verified.UserName) {
+            [System.IO.File]::WriteAllText($legacyPath, '', (New-Object System.Text.UTF8Encoding($false)))
+            Remove-Item -LiteralPath $legacyPath -Force
+            Write-Host "      סיסמת המייל הוצפנה ב-Windows DPAPI ($credPath); הקובץ הישן בטקסט גלוי נמחק." -ForegroundColor Green
+        }
+        return $verified
+    }
+    if (Test-Path -LiteralPath $credPath) {
+        $loaded = Import-Clixml -Path $credPath
+        # אם נשאר בטעות עותק ישן בטקסט גלוי לצד הקובץ המוצפן — מנקים אותו
+        if (Test-Path -LiteralPath $legacyPath) {
+            try {
+                [System.IO.File]::WriteAllText($legacyPath, '', (New-Object System.Text.UTF8Encoding($false)))
+                Remove-Item -LiteralPath $legacyPath -Force
+                Write-Host "      נוקה קובץ mail-config.json ישן בטקסט גלוי." -ForegroundColor Yellow
+            } catch {}
+        }
+        return $loaded
+    }
+    return $null
 }
 
 # האתר לא עודכן - לא שולחים מייל שמזמין לשיעור שעוד לא שם.
@@ -583,14 +661,20 @@ if (-not $sendMail) {
 Write-Host "[4/4] שולח מייל לרשימת התפוצה..." -ForegroundColor Yellow
 Write-Status "[4/4] שולח מייל לרשימת התפוצה..."
 
-$mailConfigPath = Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'shiurim-mail\mail-config.json'
-$mailingListPath = Join-Path $root 'mailing-list.txt'
-$reservePath = Join-Path $root 'mailing-list-reserve.txt'
+$mailDir = Join-Path ([Environment]::GetFolderPath('ApplicationData')) 'shiurim-mail'
+$mailCredPath = Join-Path $mailDir 'mail-cred.xml'
+$legacyMailConfigPath = Join-Path $mailDir 'mail-config.json'
+# עדיפות לרשימת תפוצה ב-AppData (מחוץ לריפו הציבורי), עם תאימות אחורה לתיקיית הריפו
+$mailingListPath = if (Test-Path -LiteralPath (Join-Path $mailDir 'mailing-list.txt')) { Join-Path $mailDir 'mailing-list.txt' } else { Join-Path $root 'mailing-list.txt' }
+$reservePath = if (Test-Path -LiteralPath (Join-Path $mailDir 'mailing-list-reserve.txt')) { Join-Path $mailDir 'mailing-list-reserve.txt' } else { Join-Path $root 'mailing-list-reserve.txt' }
+$failedPath = if ($mailingListPath.StartsWith($mailDir)) { Join-Path $mailDir 'mail-failed.txt' } else { Join-Path $root 'mail-failed.txt' }
 
-if (-not (Test-Path $mailConfigPath)) {
-    Write-Host "      הקמת המייל טרם הושלמה (חסר $mailConfigPath) - מדלג." -ForegroundColor Yellow
+if ((-not (Test-Path -LiteralPath $mailCredPath)) -and (-not (Test-Path -LiteralPath $legacyMailConfigPath))) {
+    Write-Host "      הקמת המייל טרם הושלמה (חסר $mailCredPath) - מדלג." -ForegroundColor Yellow
+    Write-Host "      להגדרה מאובטחת (מוצפן ב-Windows DPAPI) הריצו ב-PowerShell:" -ForegroundColor Yellow
+    Write-Host "        New-Item -ItemType Directory -Force `"$mailDir`" | Out-Null; (Get-Credential) | Export-Clixml `"$mailCredPath`"" -ForegroundColor Gray
     Write-Status "הקמת המייל טרם הושלמה - מדלג." -Kind error
-} elseif (-not (Test-Path $mailingListPath)) {
+} elseif (-not (Test-Path -LiteralPath $mailingListPath)) {
     Write-Host "      אין קובץ mailing-list.txt - מדלג." -ForegroundColor Yellow
     Write-Status "אין רשימת תפוצה - מדלג." -Kind error
 } else {
@@ -605,14 +689,13 @@ if (-not (Test-Path $mailConfigPath)) {
         Write-Status "רשימת התפוצה ריקה - לא נשלח מייל." -Kind done
     } else {
         try {
-            $cfg = Get-Content $mailConfigPath -Raw | ConvertFrom-Json
-            if ($cfg.AppPassword -match 'PASTE_') {
-                Write-Host "      עדיין לא הוזן App Password אמיתי ב-$mailConfigPath - מדלג." -ForegroundColor Yellow
+            $cred = Get-EncryptedMailCredential $mailDir
+            if (-not $cred) {
+                Write-Host "      עדיין לא הוגדר App Password תקף ב-$mailCredPath - מדלג." -ForegroundColor Yellow
             } else {
+                $fromEmail = $cred.UserName
                 $mail = New-ShiurMail $newShiurim $root (18 * 1024 * 1024)
 
-                $securePw = ConvertTo-SecureString $cfg.AppPassword -AsPlainText -Force
-                $cred = New-Object System.Management.Automation.PSCredential($cfg.FromEmail, $securePw)
                 # Send-MailMessage מחייב -To גם כשמשתמשים ב-Bcc, אז שמים שם את השולח עצמו.
                 # הנמענים האמיתיים ב-Bcc בלבד - כדי שאף נמען לא יראה את כתובות האחרים.
                 # -Encoding חובה: בלי זה העברית מגיעה כ-"?????".
@@ -628,7 +711,7 @@ if (-not (Test-Path $mailConfigPath)) {
                 for ($b = 0; $b -lt $recipients.Count; $b += $batchSize) {
                     $batch = @($recipients[$b..([math]::Min($b + $batchSize, $recipients.Count) - 1)])
                     $mailParams = @{
-                        From = $cfg.FromEmail; To = $cfg.FromEmail; Bcc = $batch
+                        From = $fromEmail; To = $fromEmail; Bcc = $batch
                         Subject = $mail.Subject; Body = $mail.Body; BodyAsHtml = $true
                         Encoding = [System.Text.Encoding]::UTF8
                         SmtpServer = "smtp.gmail.com"; Port = 587; UseSsl = $true; Credential = $cred
@@ -650,7 +733,6 @@ if (-not (Test-Path $mailConfigPath)) {
                 if ($failed.Count) {
                     # מי שלא קיבל נרשם לקובץ (לא בריפו - .gitignore), כדי שאפשר יהיה לשלוח לו שוב.
                     # הרחבת הרשימה לא נשמרת - הנמענים החדשים יישארו במילואים לפעם הבאה.
-                    $failedPath = Join-Path $root 'mail-failed.txt'
                     $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm'
                     $lines = @("# $stamp | $($mail.Subject)") + $failed
                     [System.IO.File]::AppendAllLines($failedPath, [string[]]$lines, (New-Object System.Text.UTF8Encoding($false)))

@@ -7,6 +7,7 @@
 rclone.exe
 rclone.conf
 *mail-config*.json
+*mail-cred*.xml
 
 # רשימת תפוצה - כתובות מייל פרטיות, לעולם לא בריפו ציבורי
 mailing-list.txt
